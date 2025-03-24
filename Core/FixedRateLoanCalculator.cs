@@ -20,18 +20,31 @@ namespace TelegramBot_Fitz.Core
 
             for (int i = 0; i < yearlyRates.Length; i++)
             {
-                decimal yearlyInterest = strategy.CalculateInterest(currentAmount, yearlyRates[i], 1);
-                currentAmount += yearlyInterest;
+                decimal yearlyInterest;
+
+                if (calculationType == InterestCalculationType.Simple)
+                {
+                    // ✅ Simple Interest всегда считает процент от ИСХОДНОЙ СУММЫ (loanAmount)
+                    yearlyInterest = loanAmount * (yearlyRates[i] / 100);
+                    totalInterest += yearlyInterest;
+                }
+                else
+                {
+                    // ✅ Compound Interest считает процент от накопленной суммы (currentAmount)
+                    yearlyInterest = strategy.CalculateInterest(currentAmount, yearlyRates[i], 1);
+                    currentAmount += yearlyInterest;
+                    totalInterest += yearlyInterest;
+                }
 
                 yearlyCalculations[i] = new YearlyCalculation
                 {
                     Year = i + 1,
                     Rate = yearlyRates[i],
                     Interest = yearlyInterest,
-                    AccumulatedAmount = currentAmount
+                    AccumulatedAmount = calculationType == InterestCalculationType.Simple
+                        ? loanAmount + totalInterest // ✅ Для Simple Interest: не растет каждый год
+                        : currentAmount // ✅ Для Compound Interest: процент накапливается
                 };
-
-                totalInterest += yearlyInterest;
             }
 
             return new LoanCalculationResult
