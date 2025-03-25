@@ -34,15 +34,16 @@ namespace TelegramBot_Fitz.Bot.Handlers
             var message = update.Message;
             var callbackQuery = update.CallbackQuery;
             long chatId = GetChatId(update);
+            bool userAlreadyExist;
 
             if (chatId == 0) return;
 
             // ДОБАВЛЯЕМ СОХРАНЕНИЕ ПОЛЬЗОВАТЕЛЯ В БД
-            using (var db =new AppDbContext())
+            using (var db = new AppDbContext())
             {
                 var existingUser = db.Users.FirstOrDefault(u => u.TG_ID == chatId);
-
-                if (existingUser == null) // Если пользователя нет в базе, добавляем его
+                userAlreadyExist = existingUser != null;
+                if (!userAlreadyExist) // Если пользователя нет в базе, добавляем его
                 {
                     var newUser = new TG_Fitz.Data.User { TG_ID = chatId };
                     db.Users.Add(newUser);
@@ -52,6 +53,28 @@ namespace TelegramBot_Fitz.Bot.Handlers
                 else
                 {
                     Console.WriteLine($" Пользователь уже есть в БД: {chatId}");
+                }
+
+                if (userAlreadyExist && message?.Text == "/start")
+                {
+                    var keyboard = new InlineKeyboardMarkup(new[]
+                    {
+                        new[] {
+                        InlineKeyboardButton.WithCallbackData("➕ New Trade", "NewCalculation"),
+                        InlineKeyboardButton.WithCallbackData("📄 View history", "ShowHistory")
+                              }
+                    });
+
+                    await _botСlient.SendMessage(chatId,
+                        "👋 Welcome to the Derivatives Calculator Bot!\n\n" +
+                        "I'm your personal assistant for calculating " +
+                        "various derivative instruments. " +
+                        "I can help you evaluate different types " +
+                        "of derivatives and their rates.\n\n" +
+                        "Before we begin, please choose " ,
+                        replyMarkup: keyboard);
+
+                    return;
                 }
             }
 
@@ -69,6 +92,9 @@ namespace TelegramBot_Fitz.Bot.Handlers
 
                 switch (userState.Step)
                 {
+                    case 1:
+                        await _inputHandlers.HandleCompanyNameInput(chatId, userState, text);
+                        break;
                     case 2:
                         await _inputHandlers.HandleAmountInput(chatId, userState, text);
                         break;
@@ -101,7 +127,7 @@ namespace TelegramBot_Fitz.Bot.Handlers
         {
             return update.Message?.Chat?.Id
                 ?? update.CallbackQuery?.Message?.Chat?.Id
-                ?? 0; 
+                ?? 0;
         }
 
 
