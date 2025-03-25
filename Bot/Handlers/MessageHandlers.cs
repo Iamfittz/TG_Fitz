@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
+using TG_Fitz.Data;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -57,5 +58,39 @@ namespace TelegramBot_Fitz.Bot
                 "Select your preferred rate type:",
                 replyMarkup: inlineKeyboard);
         }
+
+        public async Task ShowTradeHistory(long chatId)
+        {
+            using var db = new AppDbContext();
+            var user = db.Users
+                .Where(u => u.TG_ID == chatId)
+                .Select(u => new
+                {
+                    u.Trades
+                })
+                .FirstOrDefault();
+
+            if (user == null || user.Trades == null || !user.Trades.Any())
+            {
+                await _botClient.SendMessage(chatId, "❌ У вас пока нет сохранённых трейдов.");
+                return;
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine("📄 Ваши сделки:\n");
+
+            foreach (var trade in user.Trades.OrderByDescending(t => t.CreatedAt))
+            {
+                sb.AppendLine($"🏢 {trade.CompanyName ?? "Без названия"}");
+                sb.AppendLine($"💰 Сумма: {trade.LoanAmount} USD");
+                sb.AppendLine($"📅 Срок: {trade.Years} лет");
+                sb.AppendLine($"🕓 Дата: {trade.CreatedAt:yyyy-MM-dd}");
+                sb.AppendLine("———");
+            }
+
+            await _botClient.SendMessage(chatId, sb.ToString());
+        }
+
+
     }
 }
