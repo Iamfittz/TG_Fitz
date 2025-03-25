@@ -4,8 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot;
+using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBot_Fitz.Core;
+using TG_Fitz.Services;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -67,6 +69,10 @@ namespace TelegramBot_Fitz.Bot
             {
                 await _botClient.SendMessage(chatId, "❌ Error: Incorrect calculator type for fixed rate.");
             }
+            
+            // Сохраняем трейд в базу
+            var tradeService = new TradeService();
+            await tradeService.SaveTradeAsync(chatId, state);
 
             state.Reset();
         }
