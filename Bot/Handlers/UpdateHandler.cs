@@ -45,13 +45,18 @@ namespace TelegramBot_Fitz.Bot.Handlers
                 userAlreadyExist = existingUser != null;
                 if (!userAlreadyExist) // Если пользователя нет в базе, добавляем его
                 {
-                    var newUser = new TG_Fitz.Data.User { TG_ID = chatId };
+                    var newUser = new TG_Fitz.Data.User 
+                    { TG_ID = chatId,
+                      Username = message?.From?.Username
+                    };
                     db.Users.Add(newUser);
                     db.SaveChanges();
                     Console.WriteLine($" Новый пользователь добавлен в БД: {chatId}");
                 }
                 else
                 {
+                    existingUser.Username = message?.From?.Username;
+                    db.SaveChanges();
                     Console.WriteLine($" Пользователь уже есть в БД: {chatId}");
                 }
 

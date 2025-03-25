@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using TelegramBot_Fitz.Bot;
 
 namespace TelegramBot_Fitz.Core
@@ -52,7 +52,5 @@ namespace TelegramBot_Fitz.Core
                 YearlyCalculations = yearlyCalculations
             };
         }
-
-
     }
 }
