@@ -10,6 +10,13 @@ namespace TelegramBot_Fitz
     {
         static void Main(string[] args)
         {
+            var cliArgs =Environment.GetCommandLineArgs();
+            if(cliArgs.Any(a=>a.Contains("ef")))
+            {
+                Console.WriteLine("⏳ EF Core operation detected. Bot will not start.");
+                return;
+            }
+
             // Определяем корневую папку проекта
             var currentDir = Directory.GetCurrentDirectory();
             var projectRoot = currentDir;

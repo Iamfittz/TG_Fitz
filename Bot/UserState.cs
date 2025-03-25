@@ -16,7 +16,8 @@ namespace TelegramBot_Fitz.Bot
         public decimal LoanAmount { get; set; }
         public int LoanYears { get; set; }
         public int Days { get; set; }
-        
+        public string? CompanyName { get; set; }
+
         public decimal[] YearlyRates { get; set; } = Array.Empty<decimal>(); // Гарантированно не null
         public int CurrentYear { get; set; }
         public decimal FirstRate { get; set; }
@@ -39,7 +40,7 @@ namespace TelegramBot_Fitz.Bot
             FirstRate = 0;
             SecondRate = 0;
             CalculationType = CalculationType.None; // сбрасываем тип расчета
-
+            CompanyName = null;
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using TelegramBot_Fitz.Bot;
 
 namespace TelegramBot_Fitz.Core
@@ -20,20 +20,15 @@ namespace TelegramBot_Fitz.Core
 
             for (int i = 0; i < yearlyRates.Length; i++)
             {
-                decimal yearlyInterest;
+                decimal baseAmount = calculationType == InterestCalculationType.Simple
+                    ? loanAmount
+                    : currentAmount;
 
-                if (calculationType == InterestCalculationType.Simple)
+                decimal yearlyInterest = strategy.CalculateInterest(baseAmount, yearlyRates[i], 1);
+
+                if (calculationType == InterestCalculationType.Compound)
                 {
-                    // ✅ Simple Interest всегда считает процент от ИСХОДНОЙ СУММЫ (loanAmount)
-                    yearlyInterest = loanAmount * (yearlyRates[i] / 100);
-                    totalInterest += yearlyInterest;
-                }
-                else
-                {
-                    // ✅ Compound Interest считает процент от накопленной суммы (currentAmount)
-                    yearlyInterest = strategy.CalculateInterest(currentAmount, yearlyRates[i], 1);
                     currentAmount += yearlyInterest;
-                    totalInterest += yearlyInterest;
                 }
 
                 yearlyCalculations[i] = new YearlyCalculation
@@ -41,11 +36,14 @@ namespace TelegramBot_Fitz.Core
                     Year = i + 1,
                     Rate = yearlyRates[i],
                     Interest = yearlyInterest,
-                    AccumulatedAmount = calculationType == InterestCalculationType.Simple
-                        ? loanAmount + totalInterest // ✅ Для Simple Interest: не растет каждый год
-                        : currentAmount // ✅ Для Compound Interest: процент накапливается
+                    AccumulatedAmount = calculationType == InterestCalculationType.Compound
+                        ? currentAmount
+                        : loanAmount + yearlyInterest
                 };
+
+                totalInterest += yearlyInterest;
             }
+
 
             return new LoanCalculationResult
             {
@@ -54,7 +52,5 @@ namespace TelegramBot_Fitz.Core
                 YearlyCalculations = yearlyCalculations
             };
         }
-
-
     }
 }
