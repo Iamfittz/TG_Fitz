@@ -365,4 +365,5 @@ appsettings.json
 
 bin/Debug/net8/appsettings.json
 Data/AppDbContext.cs
+
 **/Migrations/

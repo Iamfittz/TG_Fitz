@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -162,5 +163,29 @@ namespace TelegramBot_Fitz.Bot
                 await _botClient.SendMessage(chatId, "Please enter a valid interest rate for the second period.");
             }
         }
+
+        public async Task HandleCompanyNameInput(long chatId, UserState state, string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                await _botClient.SendMessage(chatId, "⚠️ Company name cannot be empty. Please enter a valid name:");
+                return;
+            }
+
+            state.CompanyName = text.Trim();
+            state.Step = 1;
+
+            // ⬇️ Показываем выбор типа инструмента
+            var keyboard = new InlineKeyboardMarkup(new[]
+            {
+        new[] { InlineKeyboardButton.WithCallbackData("📊 IRS Fixed Float", "IRS_Fixed_Float") },
+        new[] { InlineKeyboardButton.WithCallbackData("💹 IRS OIS", "IRS_OIS") }
+    });
+
+            await _botClient.SendMessage(chatId,
+                "📈 Please select the type of derivative instrument:",
+                replyMarkup: keyboard);
+        }
+
     }
 }

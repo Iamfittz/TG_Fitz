@@ -24,6 +24,13 @@ namespace TelegramBot_Fitz.Bot.Handlers
 
         public async Task HandleCallbackQuery(long chatId, UserState state, string callbackData)
         {
+            if(callbackData == "NewCalculation")
+            {
+                state.Step = 1;
+                await _botClient.SendMessage(chatId, "🏢 Please enter your company name (eg Apple, Tesla, etc.):");
+                return;
+            }
+            
             if (callbackData.StartsWith("SameRate_"))
             {
                 int nextYear = int.Parse(callbackData.Split('_')[1]);
@@ -125,6 +132,9 @@ namespace TelegramBot_Fitz.Bot.Handlers
                     case "MainMenu":
                         await _messageHandlers.ShowWelcomeMessage(chatId);
                         state.Reset();
+                        break;
+                    case "ShowHistory":
+                        await _messageHandlers.ShowTradeHistory(chatId);
                         break;
 
                     case "Help":

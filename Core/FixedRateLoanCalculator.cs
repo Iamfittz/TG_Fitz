@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using TelegramBot_Fitz.Bot;
 
 namespace TelegramBot_Fitz.Core
@@ -20,19 +20,30 @@ namespace TelegramBot_Fitz.Core
 
             for (int i = 0; i < yearlyRates.Length; i++)
             {
-                decimal yearlyInterest = strategy.CalculateInterest(currentAmount, yearlyRates[i], 1);
-                currentAmount += yearlyInterest;
+                decimal baseAmount = calculationType == InterestCalculationType.Simple
+                    ? loanAmount
+                    : currentAmount;
+
+                decimal yearlyInterest = strategy.CalculateInterest(baseAmount, yearlyRates[i], 1);
+
+                if (calculationType == InterestCalculationType.Compound)
+                {
+                    currentAmount += yearlyInterest;
+                }
 
                 yearlyCalculations[i] = new YearlyCalculation
                 {
                     Year = i + 1,
                     Rate = yearlyRates[i],
                     Interest = yearlyInterest,
-                    AccumulatedAmount = currentAmount
+                    AccumulatedAmount = calculationType == InterestCalculationType.Compound
+                        ? currentAmount
+                        : loanAmount + yearlyInterest
                 };
 
                 totalInterest += yearlyInterest;
             }
+
 
             return new LoanCalculationResult
             {
@@ -41,7 +52,5 @@ namespace TelegramBot_Fitz.Core
                 YearlyCalculations = yearlyCalculations
             };
         }
-
-
     }
 }
