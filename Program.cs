@@ -17,32 +17,23 @@ namespace TelegramBot_Fitz
                 return;
             }
 
-            // Определяем корневую папку проекта
-            var currentDir = Directory.GetCurrentDirectory();
-            var projectRoot = currentDir;
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
 
-            Console.WriteLine($"Using base path: {projectRoot}");
-
-            // Проверяем, существует ли appsettings.json
-            string configPath = Path.Combine(projectRoot, "appsettings.json");
-            if (!File.Exists(configPath))
-            {
-                Console.WriteLine($"ERROR: Configuration file {configPath} not found!");
-                throw new FileNotFoundException($"Configuration file {configPath} not found!");
-            }
+            Console.WriteLine($"Environment: {environment}");
 
             // Загружаем конфигурацию
             var configuration = new ConfigurationBuilder()
-                .SetBasePath(projectRoot)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.Development.json", optional: true)
+                .AddJsonFile($"appsettings.{environment}.json", optional: true)
                 .Build();
 
             // Проверяем, загружается ли botToken
             string? botToken = configuration["BotSettings:BotToken"];
             if (string.IsNullOrEmpty(botToken))
             {
-                Console.WriteLine("ERROR: Bot token is null or empty!");
-                throw new InvalidOperationException("Bot token is missing in appsettings.json");
+                Console.WriteLine("ERROR: Bot token is missing!");
+                throw new InvalidOperationException("Bot token is missing in configuration");
             }
 
             Console.WriteLine("Bot is running...");

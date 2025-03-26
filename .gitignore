@@ -367,3 +367,5 @@ bin/Debug/net8/appsettings.json
 Data/AppDbContext.cs
 
 **/Migrations/
+appsettings.Development.json
+appsettings.Production.json
