@@ -107,8 +107,12 @@ namespace TelegramBot_Fitz.Bot.Handlers
                         await _inputHandlers.HandleYearsInput(chatId, userState, text);
                         break;
                     case 4:
-                        await _inputHandlers.HandleRateInput(chatId, userState, text);
+                        if (userState.CalculationType == CalculationType.FloatingRate)
+                            await _inputHandlers.HandleFloatingRateInput(chatId, userState, text);
+                        else
+                            await _inputHandlers.HandleRateInput(chatId, userState, text);
                         break;
+
                     case 5:
                         await _inputHandlers.HandleSecondRateInput(chatId, userState, text);
                         break;
