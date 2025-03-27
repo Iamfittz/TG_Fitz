@@ -29,7 +29,12 @@ namespace TelegramBot_Fitz.Core
 
         public decimal CalculateTotalInterest(UserState state)
         {
-            return CalculateFirstPeriodInterest(state) + CalculateSecondPeriodInterest(state);
+            decimal total = 0;
+            foreach (var rate in state.FloatingRates)
+            {
+                total += state.LoanAmount * (rate / 100) * ((int)state.FloatingRateResetPeriod / 12m);
+            }
+            return total;
         }
 
         public decimal CalculateTotalPayment(UserState state)

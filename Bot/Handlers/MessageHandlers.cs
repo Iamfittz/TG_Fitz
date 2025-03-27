@@ -72,23 +72,42 @@ namespace TelegramBot_Fitz.Bot
 
             if (user == null || user.Trades == null || !user.Trades.Any())
             {
-                await _botClient.SendMessage(chatId, "❌ У вас пока нет сохранённых трейдов.");
+                await _botClient.SendMessage(chatId, "You don't have any saved trades yet.");
                 return;
             }
 
-            var sb = new StringBuilder();
-            sb.AppendLine("📄 Ваши сделки:\n");
+            var buttons = user.Trades
+                .OrderByDescending(t => t.CreatedAt)
+                .Select(t =>
+                new[]
+                {
+                    InlineKeyboardButton.WithCallbackData(
+                         $"🏢 {t.CompanyName ?? "Untitled"} | {t.CreatedAt:yyyy-MM-dd}",
+                         $"ShowTrade_{t.Id}")
+                })
+                .ToList();
 
-            foreach (var trade in user.Trades.OrderByDescending(t => t.CreatedAt))
-            {
-                sb.AppendLine($"🏢 {trade.CompanyName ?? "Без названия"}");
-                sb.AppendLine($"💰 Сумма: {trade.LoanAmount} USD");
-                sb.AppendLine($"📅 Срок: {trade.Years} лет");
-                sb.AppendLine($"🕓 Дата: {trade.CreatedAt:yyyy-MM-dd}");
-                sb.AppendLine("———");
-            }
+            var keyboard = new InlineKeyboardMarkup(buttons);
 
-            await _botClient.SendMessage(chatId, sb.ToString());
+            await _botClient.SendMessage(
+                chatId,
+                "Your saved trades:",
+                replyMarkup: keyboard
+            );
+
+            //var sb = new StringBuilder();
+            //sb.AppendLine("Your transactions:\n");
+
+            //foreach (var trade in user.Trades.OrderByDescending(t => t.CreatedAt))
+            //{
+            //    sb.AppendLine($"🏢 {trade.CompanyName ?? "Untitled"}");
+            //    sb.AppendLine($"💰 Loan: {trade.LoanAmount} USD");
+            //    sb.AppendLine($"📅 Duration: {trade.Years} years");
+            //    sb.AppendLine($"🕓 Date: {trade.CreatedAt:yyyy-MM-dd}");
+            //    sb.AppendLine("———");
+            //}
+
+            //await _botClient.SendMessage(chatId, sb.ToString());
         }
 
 

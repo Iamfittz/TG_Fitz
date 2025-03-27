@@ -83,25 +83,44 @@ namespace TelegramBot_Fitz.Bot
 
             if (calculator is FloatingRateLoanCalculator floatingCalculator)
             {
+                floatingCalculator.LoanAmount = state.LoanAmount;
+                floatingCalculator.TotalYears = state.LoanYears;
+
                 decimal totalInterest = floatingCalculator.CalculateTotalInterest(state);
                 decimal totalPayment = floatingCalculator.CalculateTotalPayment(state);
 
-                var resultMessage =
-                    $"Loan calculation with floating rate:\n" +
-                    $"First 6 months rate: {state.FirstRate}%\n" +
-                    $"Second 6 months rate: {state.SecondRate}%\n" +
-                    $"Total interest: {totalInterest:F2} USD\n" +
-                    $"Total payment: {totalPayment:F2} USD";
+                var sb = new StringBuilder();
+                sb.AppendLine($"📊 Floating Rate Calculation");
+                sb.AppendLine($"🏢 Company: {state.CompanyName ?? "Untitled"}");
+                sb.AppendLine($"💰 Loan Amount: {state.LoanAmount:F2} USD");
+                sb.AppendLine($"📅 Duration: {state.LoanYears} years");
+                sb.AppendLine($"🔁 Reset every {(int)state.FloatingRateResetPeriod} months");
+                sb.AppendLine();
 
-                await _botClient.SendMessage(chatId, resultMessage);
+                for (int i = 0; i < state.FloatingRates.Count; i++)
+                {
+                    var rate = state.FloatingRates[i];
+                    sb.AppendLine($"📌 Period {i + 1}: {rate}%");
+                }
+
+                sb.AppendLine();
+                sb.AppendLine($"💸 Total Interest: {totalInterest:F2} USD");
+                sb.AppendLine($"💵 Total Payment: {totalPayment:F2} USD");
+
+                await _botClient.SendMessage(chatId, sb.ToString());
+
+                // ✅ сохранить сделку
+                var tradeService = new TradeService();
+                await tradeService.SaveTradeAsync(chatId, state);
+
+                state.Reset();
             }
             else
             {
                 await _botClient.SendMessage(chatId, "❌ Error: Incorrect calculator type for floating rate.");
             }
-
-            state.Reset();
         }
+
 
         public async Task HandleOISCalculation(long chatId, UserState state)
         {
