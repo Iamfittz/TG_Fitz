@@ -57,6 +57,7 @@ namespace TelegramBot_Fitz.Bot
                     await _botClient.SendMessage(chatId, "Please enter a valid number of days.");
                 }
             }
+
             else
             {
                 if (int.TryParse(input, out int years) && years > 0)
@@ -74,13 +75,23 @@ namespace TelegramBot_Fitz.Bot
                         state.CurrentYear = 1;
                         state.Step = 4;
                     }
-                    else
+
+                    else if (state.CalculationType == CalculationType.FloatingRate)
                     {
+                        state.CurrentFloatingPeriod = 1;
+                        state.FloatingRates.Clear();
+
+                        int totalPeriods = state.TotalFloatingPeriods;
+
                         await _botClient.SendMessage(chatId,
-                            "You've entered a floating rate calculation.\n" +
-                            "Now please enter the interest rate for the first 6-month period:");
+                        $"📅 Loan duration: {years} years\n" +
+                        $"🔁 Rate reset: every {(int)state.FloatingRateResetPeriod} months\n" +
+                        $"📌 You will need to enter {totalPeriods} rate(s).\n\n" +
+                        $"Please enter the rate for period 1:");
+
+                        state.Step = 4;
                     }
-                    state.Step = 4;
+
                 }
                 else
                 {
@@ -88,7 +99,6 @@ namespace TelegramBot_Fitz.Bot
                 }
             }
         }
-
 
         public async Task HandleRateInput(long chatId, UserState state, string input)
         {
@@ -122,15 +132,7 @@ namespace TelegramBot_Fitz.Bot
                         await _calculationHandlers.HandleFixedRateCalculation(chatId, state);
                     }
                 }
-                else if (state.CalculationType == CalculationType.FloatingRate)
-                {
-                    // Существующая логика для Floating Rate
-                    state.FirstRate = rate;
-                    await _botClient.SendMessage(chatId,
-                        $"First 6-month period rate is set to {rate}%.\n" +
-                        "Please enter the interest rate for the second 6-month period:");
-                    state.Step = 5;
-                }
+                
                 else if (state.CalculationType == CalculationType.OIS)
                 {
                     // Существующая логика для OIS
@@ -161,6 +163,30 @@ namespace TelegramBot_Fitz.Bot
             else
             {
                 await _botClient.SendMessage(chatId, "Please enter a valid interest rate for the second period.");
+            }
+        }
+        public async Task HandleFloatingRateInput(long chatId, UserState state, string input)
+        {
+            if (decimal.TryParse(input, out decimal rate) && rate >= 0)
+            {
+                state.FloatingRates.Add(rate);
+
+                if (state.CurrentFloatingPeriod < state.TotalFloatingPeriods)
+                {
+                    state.CurrentFloatingPeriod++;
+                    await _botClient.SendMessage(chatId,
+                        $"Please enter the rate for period {state.CurrentFloatingPeriod}:");
+                }
+                else
+                {
+                    // Все ставки введены — делаем расчет
+                    await _calculationHandlers.HandleFloatingRateCalculation(chatId, state);
+                }
+            }
+            else
+            {
+                await _botClient.SendMessage(chatId,
+                    $"❌ Please enter a valid rate for period {state.CurrentFloatingPeriod}.");
             }
         }
 
