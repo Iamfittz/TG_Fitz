@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBot_Fitz.Core;
+using TG_Fitz.Core;
+using TG_Fitz.Data;
 
 namespace TelegramBot_Fitz.Bot.Handlers
 {
@@ -68,6 +70,39 @@ namespace TelegramBot_Fitz.Bot.Handlers
                     $"Please enter the interest rate for year {nextYear} (e.g., 4 for 4%):");
             }
 
+            else if (callbackData.StartsWith("ShowTrade_"))
+            {
+                if (int.TryParse(callbackData.Split('_')[1], out int tradeId))
+                {
+                    using var db = new AppDbContext();
+                    var trade = db.Trades.FirstOrDefault(t => t.Id == tradeId && t.User.TG_ID == chatId);
+
+                    if (trade != null)
+                    {
+                        var company = string.IsNullOrWhiteSpace(trade.CompanyName) ? "Untitled" : trade.CompanyName;
+
+                        var detailMessage = $"🏢 Company: {company}\n" +
+                                            $"💰 Loan: {trade.LoanAmount} USD\n" +
+                                            $"📅 Duration: {trade.Years} years\n" +
+                                            $"🕓 Date: {trade.CreatedAt:yyyy-MM-dd}";
+
+                        await _botClient.SendMessage(chatId, detailMessage);
+                    }
+                    else
+                    {
+                        await _botClient.SendMessage(chatId, "❌ Trade not found.");
+                    }
+                }
+                else
+                {
+                    await _botClient.SendMessage(chatId, "⚠️ Invalid trade ID.");
+                }
+
+                return; // Важно: выходим, чтобы не провалиться в switch ниже
+            }
+
+
+
             else
             {
                 switch (callbackData)
@@ -101,8 +136,6 @@ namespace TelegramBot_Fitz.Bot.Handlers
                     "📈 Compound Interest: interest is calculated on the accumulated amount",
                     replyMarkup: interestTypeKeyboard);
                         break;
-
-                    // Добавляем новые case для обработки выбора типа процентов
                     case "SimpleInterest":
                         state.InterestCalculationType = InterestCalculationType.Simple;
                         await _botClient.SendMessage(chatId,
@@ -110,7 +143,6 @@ namespace TelegramBot_Fitz.Bot.Handlers
                             "Please enter the loan amount.");
                         state.Step = 2;
                         break;
-
                     case "CompoundInterest":
                         state.InterestCalculationType = InterestCalculationType.Compound;
                         await _botClient.SendMessage(chatId,
@@ -120,10 +152,56 @@ namespace TelegramBot_Fitz.Bot.Handlers
                         break;
                     case "FloatingRate":
                         state.CalculationType = CalculationType.FloatingRate;
+
+                        var resetKeyboard = new InlineKeyboardMarkup(new[]
+                        {
+                            new[] {
+                                InlineKeyboardButton.WithCallbackData("🔁 Every 1 month", "Reset_1m"),
+                                InlineKeyboardButton.WithCallbackData("🔁 Every 3 months", "Reset_3m")
+                                },
+                            new[] {
+                                InlineKeyboardButton.WithCallbackData("🔁 Every 6 months", "Reset_6m"),
+                                InlineKeyboardButton.WithCallbackData("🔁 Every 12 months", "Reset_12m")
+                                }
+                        });
+
                         await _botClient.SendMessage(chatId,
-                            "You selected Floating Rate. Please enter the loan amount.");
+                            "You selected Floating Rate.\n" +
+                            " How often should the rate reset?",
+                            replyMarkup: resetKeyboard);
+                        return;
+
+                    case "Reset_1m":
+                        state.FloatingRateResetPeriod = FloatingRateResetPeriod.OneMonth;
+                        await _botClient.SendMessage(chatId,
+                            "🔁 Rate will reset every 1 month.\n" +
+                            "💰 Please enter the **loan amount** (e.g., 100000):");
                         state.Step = 2;
-                        break;
+                        return;
+
+                    case "Reset_3m":
+                        state.FloatingRateResetPeriod = FloatingRateResetPeriod.ThreeMonth;
+                        await _botClient.SendMessage(chatId,
+                            "🔁 Rate will reset every 3 months.\n" +
+                            "💰 Please enter the **loan amount** (e.g., 100000):");
+                        state.Step = 2;
+                        return;
+
+                    case "Reset_6m":
+                        state.FloatingRateResetPeriod = FloatingRateResetPeriod.SixMonth;
+                        await _botClient.SendMessage(chatId,
+                            "🔁 Rate will reset every 6 months.\n" +
+                            "💰 Please enter the **loan amount** (e.g., 100000):");
+                        state.Step = 2;
+                        return;
+
+                    case "Reset_12m":
+                        state.FloatingRateResetPeriod = FloatingRateResetPeriod.OneYear;
+                        await _botClient.SendMessage(chatId,
+                            "🔁 Rate will reset every 12 months.\n" +
+                            "💰 Please enter the **loan amount** (e.g., 100000):");
+                        state.Step = 2;
+                        return;
                     case "NewCalculation":
                         await _messageHandlers.ShowRateTypeSelection(chatId);
                         state.Step = 1;
