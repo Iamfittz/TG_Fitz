@@ -1,4 +1,5 @@
 ﻿using TelegramBot_Fitz.Core;
+using TG_Fitz.Core;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -25,6 +26,18 @@ namespace TelegramBot_Fitz.Bot
         public CalculationType CalculationType { get; set; } = CalculationType.None; // Тип расчета (Fixed или Floating)
         public InterestCalculationType InterestCalculationType { get; set; }
 
+        public FloatingRateResetPeriod FloatingRateResetPeriod { get; set; } = new();
+        public int CurrentFloatingPeriod { get; set; } = 1;
+        public List<decimal> FloatingRates { get; set; } = new();
+
+        public int TotalFloatingPeriods
+        {
+            get
+            {
+                int months = LoanYears * 12;
+                return months / (int)FloatingRateResetPeriod;
+            }
+        }
         public void InitilizeYearlyRates()
         {
             YearlyRates = new decimal[LoanYears];
