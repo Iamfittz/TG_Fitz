@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
+using TG_Fitz.Bot.Handlers;
 using TG_Fitz.Data;
 
 namespace TelegramBot_Fitz.Bot.Handlers
@@ -92,6 +93,13 @@ namespace TelegramBot_Fitz.Bot.Handlers
                 if (text.StartsWith("/start") || text.StartsWith("/help"))
                 {
                     await _messageHandlers.ShowWelcomeMessage(chatId);
+                    return;
+                }
+
+                if (text == "/sofr")
+                {
+                    var sofrHandelrs = new SofrHandlers(new SofrService(new HttpClient()));
+                    await sofrHandelrs.HandleSofrCommand(chatId, _botСlient);
                     return;
                 }
 

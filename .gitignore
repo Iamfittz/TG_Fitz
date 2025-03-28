@@ -369,3 +369,4 @@ Data/AppDbContext.cs
 **/Migrations/
 appsettings.Development.json
 appsettings.Production.json
+fredApi.json

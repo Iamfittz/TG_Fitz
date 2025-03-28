@@ -7,6 +7,8 @@ using System.Threading;
 using System.Collections.Generic;
 using TelegramBot_Fitz.Core;
 using TelegramBot_Fitz.Bot.Handlers;
+using TG_Fitz.Data;
+using TG_Fitz.Bot.Handlers;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -21,6 +23,7 @@ namespace TelegramBot_Fitz.Bot
         private readonly InputHandlers _inputHandlers;
         private readonly UpdateHandler _updateHandler;
         private readonly CallbackQueryHandler _callbackQueryHandler;
+        private readonly SofrHandlers _sofrHandlers;
 
         public BotService(string token)
         {
@@ -30,28 +33,16 @@ namespace TelegramBot_Fitz.Bot
             var fixedCalculator = new FixedRateLoanCalculator();
             var floatingCalculator = new FloatingRateLoanCalculator();
             var oisCalculator = new OISCalculator();
+            var sofrSerive = new SofrService(new HttpClient());
+            var sofrHandlers = new SofrHandlers(sofrSerive);
 
             _messageHandlers = new MessageHandlers(_botClient);
             _calculationHandlers = new CalculationHandlers(_botClient);
             _inputHandlers = new InputHandlers(_botClient, _calculationHandlers);
             _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers);
             _updateHandler = new UpdateHandler(_botClient, _userStates, _messageHandlers, _inputHandlers, _callbackQueryHandler);
+            _sofrHandlers = sofrHandlers;
         }
-
-        //public static BotService GetInstance(string token)
-        //{
-        //    if (_instance == null)
-        //    {
-        //        lock (_lock)
-        //        {
-        //            if (_instance == null)
-        //            {
-        //                _instance = new BotService(token);
-        //            }
-        //        }
-        //    }
-        //    return _instance;
-        //}
 
         public void Start()
         {
