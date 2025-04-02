@@ -20,14 +20,21 @@ namespace TelegramBot_Fitz.Bot.Handlers
         private readonly MessageHandlers _messageHandlers;
         private readonly InputHandlers _inputHandlers;
         private readonly CallbackQueryHandler _callbackQueryHandler;
-        public UpdateHandler(ITelegramBotClient botСlient, Dictionary<long, UserState> userStates,
-            MessageHandlers messageHandlers, InputHandlers inputHandlers, CallbackQueryHandler callbackQueryHandler)
+        private readonly SofrHandlers _sofrHandlers;
+        public UpdateHandler(
+            ITelegramBotClient botСlient, 
+            Dictionary<long, UserState> userStates,
+            MessageHandlers messageHandlers, 
+            InputHandlers inputHandlers, 
+            CallbackQueryHandler callbackQueryHandler, 
+            SofrHandlers sofrHandlers)
         {
             _botСlient = botСlient;
             _userStates = userStates;
             _messageHandlers = messageHandlers;
             _inputHandlers = inputHandlers;
             _callbackQueryHandler = callbackQueryHandler;
+            _sofrHandlers = sofrHandlers;
         }
 
         public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
@@ -98,8 +105,7 @@ namespace TelegramBot_Fitz.Bot.Handlers
 
                 if (text == "/sofr")
                 {
-                    var sofrHandelrs = new SofrHandlers(new SofrService(new HttpClient()));
-                    await sofrHandelrs.HandleSofrCommand(chatId, _botСlient);
+                    await _sofrHandlers.HandleSofrCommand(chatId, _botСlient);
                     return;
                 }
 

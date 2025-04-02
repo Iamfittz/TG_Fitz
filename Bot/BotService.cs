@@ -29,19 +29,26 @@ namespace TelegramBot_Fitz.Bot
         {
             _botClient = new TelegramBotClient(token);
             _userStates = new Dictionary<long, UserState>();
-
+            
+            var dbContext = new AppDbContext();
             var fixedCalculator = new FixedRateLoanCalculator();
             var floatingCalculator = new FloatingRateLoanCalculator();
             var oisCalculator = new OISCalculator();
-            var sofrSerive = new SofrService(new HttpClient());
-            var sofrHandlers = new SofrHandlers(sofrSerive);
+            var sofrSeriсe = new SofrService(new HttpClient(),dbContext);
+            var sofrHandlers = new SofrHandlers(sofrSeriсe);
 
             _messageHandlers = new MessageHandlers(_botClient);
             _calculationHandlers = new CalculationHandlers(_botClient);
             _inputHandlers = new InputHandlers(_botClient, _calculationHandlers);
             _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers);
-            _updateHandler = new UpdateHandler(_botClient, _userStates, _messageHandlers, _inputHandlers, _callbackQueryHandler);
             _sofrHandlers = sofrHandlers;
+            _updateHandler = new UpdateHandler(
+                _botClient, 
+                _userStates, 
+                _messageHandlers, 
+                _inputHandlers, 
+                _callbackQueryHandler, 
+                _sofrHandlers);
         }
 
         public void Start()
