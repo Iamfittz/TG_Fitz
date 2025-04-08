@@ -370,3 +370,6 @@ Data/AppDbContext.cs
 appsettings.Development.json
 appsettings.Production.json
 fredApi.json
+trade.db
+trade.db-wal
+trade.db-shm

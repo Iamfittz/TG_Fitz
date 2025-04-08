@@ -12,7 +12,8 @@ namespace TG_Fitz.Data
     {
         [Key]
         public int Id { get; set; }
-        public string? CompanyName { get; set; }
+        [MaxLength(255)]
+        public required string CompanyName { get; set; }
         public decimal LoanAmount { get; set; }
         public int Years { get; set; }
 
