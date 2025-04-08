@@ -14,7 +14,7 @@ namespace TG_Fitz.Data
         public DateTime Date { get; set; }
 
         public decimal InterestRateValue { get; set; }
-
+        [MaxLength(255)]
         public string? RateType { get; set; }
 
     }
