@@ -27,22 +27,21 @@ namespace TelegramBot_Fitz.Bot
         private readonly SofrHandlers _sofrHandlers;
         private readonly AppDbContext _dbContext;
 
-        public BotService(string token)
+        public BotService(string token, AppDbContext dbContext, SofrService sofrService)
         {
             _botClient = new TelegramBotClient(token);
             _userStates = new Dictionary<long, UserState>();
 
-            _dbContext = new AppDbContext(); 
+            _dbContext = dbContext;
             var fixedCalculator = new FixedRateLoanCalculator();
             var floatingCalculator = new FloatingRateLoanCalculator();
             var oisCalculator = new OISCalculator();
-            var sofrSeriсe = new SofrService(new HttpClient(), _dbContext);
-            var sofrHandlers = new SofrHandlers(sofrSeriсe);
+            var sofrHandlers = new SofrHandlers(sofrService); // Используем переданный sofrService
 
-            _messageHandlers = new MessageHandlers(_botClient);
+            _messageHandlers = new MessageHandlers(_botClient, _dbContext);
             _calculationHandlers = new CalculationHandlers(_botClient);
             _inputHandlers = new InputHandlers(_botClient, _calculationHandlers);
-            _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers);
+            _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers, _dbContext);
             _sofrHandlers = sofrHandlers;
             _updateHandler = new UpdateHandler(
                 _botClient,
@@ -50,7 +49,8 @@ namespace TelegramBot_Fitz.Bot
                 _messageHandlers,
                 _inputHandlers,
                 _callbackQueryHandler,
-                _sofrHandlers);
+                _sofrHandlers,
+                _dbContext);
         }
 
         public void Start()
