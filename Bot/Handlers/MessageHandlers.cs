@@ -12,10 +12,12 @@ namespace TelegramBot_Fitz.Bot
     public class MessageHandlers
     {
         private readonly ITelegramBotClient _botClient;
+        private readonly AppDbContext _dbContext; // Добавляем поле
 
-        public MessageHandlers(ITelegramBotClient botClient)
+        public MessageHandlers(ITelegramBotClient botClient, AppDbContext dbContext)
         {
             _botClient = botClient;
+            _dbContext = dbContext;
         }
 
         public async Task ShowWelcomeMessage(long chatId)
@@ -61,8 +63,8 @@ namespace TelegramBot_Fitz.Bot
 
         public async Task ShowTradeHistory(long chatId)
         {
-            using var db = new AppDbContext();
-            var user = db.Users
+            
+            var user = _dbContext.Users
                 .Where(u => u.TG_ID == chatId)
                 .Select(u => new
                 {
