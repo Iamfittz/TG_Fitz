@@ -9,6 +9,7 @@ using TelegramBot_Fitz.Core;
 using TelegramBot_Fitz.Bot.Handlers;
 using TG_Fitz.Data;
 using TG_Fitz.Bot.Handlers;
+using Microsoft.EntityFrameworkCore;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -24,17 +25,18 @@ namespace TelegramBot_Fitz.Bot
         private readonly UpdateHandler _updateHandler;
         private readonly CallbackQueryHandler _callbackQueryHandler;
         private readonly SofrHandlers _sofrHandlers;
+        private readonly AppDbContext _dbContext;
 
         public BotService(string token)
         {
             _botClient = new TelegramBotClient(token);
             _userStates = new Dictionary<long, UserState>();
-            
-            var dbContext = new AppDbContext();
+
+            _dbContext = new AppDbContext(); 
             var fixedCalculator = new FixedRateLoanCalculator();
             var floatingCalculator = new FloatingRateLoanCalculator();
             var oisCalculator = new OISCalculator();
-            var sofrSeriсe = new SofrService(new HttpClient(),dbContext);
+            var sofrSeriсe = new SofrService(new HttpClient(), _dbContext);
             var sofrHandlers = new SofrHandlers(sofrSeriсe);
 
             _messageHandlers = new MessageHandlers(_botClient);
@@ -43,17 +45,23 @@ namespace TelegramBot_Fitz.Bot
             _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers);
             _sofrHandlers = sofrHandlers;
             _updateHandler = new UpdateHandler(
-                _botClient, 
-                _userStates, 
-                _messageHandlers, 
-                _inputHandlers, 
-                _callbackQueryHandler, 
+                _botClient,
+                _userStates,
+                _messageHandlers,
+                _inputHandlers,
+                _callbackQueryHandler,
                 _sofrHandlers);
         }
 
         public void Start()
         {
             _botClient.StartReceiving(_updateHandler.HandleUpdateAsync, _updateHandler.HandleErrorAsync);
+        }
+
+        public void Stop()
+        {
+            _botClient.Close(); 
+            _dbContext.Dispose(); 
         }
     }
 }
