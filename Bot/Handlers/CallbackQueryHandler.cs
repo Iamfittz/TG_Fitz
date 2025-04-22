@@ -16,12 +16,14 @@ namespace TelegramBot_Fitz.Bot.Handlers
         private readonly ITelegramBotClient _botClient;
         private readonly CalculationHandlers _calculationHandlers;
         private readonly MessageHandlers _messageHandlers;
+        private readonly AppDbContext _dbContext;
 
-        public CallbackQueryHandler(ITelegramBotClient botClient, CalculationHandlers calculationHandlers, MessageHandlers messageHandlers)
+        public CallbackQueryHandler(ITelegramBotClient botClient, CalculationHandlers calculationHandlers, MessageHandlers messageHandlers, AppDbContext dbContext)
         {
             _botClient = botClient;
             _calculationHandlers = calculationHandlers;
             _messageHandlers = messageHandlers;
+            _dbContext = dbContext;
         }
 
         public async Task HandleCallbackQuery(long chatId, UserState state, string callbackData)
@@ -74,8 +76,7 @@ namespace TelegramBot_Fitz.Bot.Handlers
             {
                 if (int.TryParse(callbackData.Split('_')[1], out int tradeId))
                 {
-                    using var db = new AppDbContext();
-                    var trade = db.Trades.FirstOrDefault(t => t.Id == tradeId && t.User.TG_ID == chatId);
+                    var trade = _dbContext.Trades.FirstOrDefault(t => t.Id == tradeId && t.User.TG_ID == chatId);
 
                     if (trade != null)
                     {
