@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,13 +22,15 @@ namespace TelegramBot_Fitz.Bot.Handlers
         private readonly InputHandlers _inputHandlers;
         private readonly CallbackQueryHandler _callbackQueryHandler;
         private readonly SofrHandlers _sofrHandlers;
+        private readonly AppDbContext _dbContext;
         public UpdateHandler(
             ITelegramBotClient botСlient, 
             Dictionary<long, UserState> userStates,
             MessageHandlers messageHandlers, 
             InputHandlers inputHandlers, 
             CallbackQueryHandler callbackQueryHandler, 
-            SofrHandlers sofrHandlers)
+            SofrHandlers sofrHandlers,
+            AppDbContext dbContext)
         {
             _botСlient = botСlient;
             _userStates = userStates;
@@ -35,9 +38,13 @@ namespace TelegramBot_Fitz.Bot.Handlers
             _inputHandlers = inputHandlers;
             _callbackQueryHandler = callbackQueryHandler;
             _sofrHandlers = sofrHandlers;
+            _dbContext = dbContext;
         }
 
-        public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken cancellationToken)
+        public async Task HandleUpdateAsync(
+            ITelegramBotClient botClient, 
+            Update update, 
+            CancellationToken cancellationToken)
         {
             var message = update.Message;
             var callbackQuery = update.CallbackQuery;
@@ -46,49 +53,24 @@ namespace TelegramBot_Fitz.Bot.Handlers
 
             if (chatId == 0) return;
 
-            // ДОБАВЛЯЕМ СОХРАНЕНИЕ ПОЛЬЗОВАТЕЛЯ В БД
-            using (var db = new AppDbContext())
+            var existingUser = _dbContext.Users.FirstOrDefault(u => u.TG_ID == chatId);
+            userAlreadyExist = existingUser != null;
+            if (!userAlreadyExist) 
             {
-                var existingUser = db.Users.FirstOrDefault(u => u.TG_ID == chatId);
-                userAlreadyExist = existingUser != null;
-                if (!userAlreadyExist) // Если пользователя нет в базе, добавляем его
+                var newUser = new TG_Fitz.Data.User
                 {
-                    var newUser = new TG_Fitz.Data.User 
-                    { TG_ID = chatId,
-                      Username = message?.From?.Username
-                    };
-                    db.Users.Add(newUser);
-                    db.SaveChanges();
-                    Console.WriteLine($" Новый пользователь добавлен в БД: {chatId}");
-                }
-                else
-                {
-                    existingUser.Username = message?.From?.Username;
-                    db.SaveChanges();
-                    Console.WriteLine($" Пользователь уже есть в БД: {chatId}");
-                }
-
-                if (userAlreadyExist && message?.Text == "/start")
-                {
-                    var keyboard = new InlineKeyboardMarkup(new[]
-                    {
-                        new[] {
-                        InlineKeyboardButton.WithCallbackData("➕ New Trade", "NewCalculation"),
-                        InlineKeyboardButton.WithCallbackData("📄 View history", "ShowHistory")
-                              }
-                    });
-
-                    await _botСlient.SendMessage(chatId,
-                        "👋 Welcome to the Derivatives Calculator Bot!\n\n" +
-                        "I'm your personal assistant for calculating " +
-                        "various derivative instruments. " +
-                        "I can help you evaluate different types " +
-                        "of derivatives and their rates.\n\n" +
-                        "Before we begin, please choose " ,
-                        replyMarkup: keyboard);
-
-                    return;
-                }
+                    TG_ID = chatId,
+                    Username = message?.From?.Username
+                };
+                _dbContext.Users.Add(newUser);
+                _dbContext.SaveChanges();
+                Console.WriteLine($" Новый пользователь добавлен в БД: {chatId}");
+            }
+            else
+            {
+                existingUser.Username = message?.From?.Username;
+                _dbContext.SaveChanges();
+                Console.WriteLine($" Пользователь уже есть в БД: {chatId}");
             }
 
             var userState = EnsureUserState(chatId);
