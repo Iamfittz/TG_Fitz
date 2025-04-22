@@ -3,6 +3,11 @@ using System;
 using Telegram.Bot;
 using TelegramBot_Fitz.Bot;
 using TelegramBot_Fitz.Core;
+using Microsoft.Extensions.DependencyInjection;
+using TG_Fitz.Data;
+using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
+using System.Reflection;
 
 namespace TelegramBot_Fitz
 {
@@ -34,10 +39,29 @@ namespace TelegramBot_Fitz
                 throw new InvalidOperationException("Bot token is missing in configuration");
             }
 
+            //DI
+            var services = new ServiceCollection();
+            services.AddSingleton(botToken);
+            var connectionString = configuration.GetConnectionString("DefaultConnection");
+            
+            if(string.IsNullOrEmpty(connectionString))
+            {
+                Console.WriteLine("Database connection string is missing!");
+                throw new InvalidOperationException("Database connection string is missing in configuration");
+            }
+            services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlite(connectionString));
+            services.AddHttpClient<SofrService>(); // Регистрируем HttpClient для SofrService
+            services.AddScoped<SofrService>(); // Регистрируем SofrService
+            services.AddScoped<BotService>(); 
+            var serviceProvider = services.BuildServiceProvider();
+
+
             Console.WriteLine("Bot is running...");
 
             using var cts = new CancellationTokenSource();
-            var botService = new BotService(botToken);
+            var scope = serviceProvider.CreateScope();
+            var botService = scope.ServiceProvider.GetRequiredService<BotService>(); // Получаем BotService через DI
             bool isCancellationRequested = false;
 
             Console.CancelKeyPress += (sender, e) =>
