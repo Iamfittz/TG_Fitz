@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
 using static System.Net.Mime.MediaTypeNames;
+using Fitz.Core.Enums;
+using Fitz.Core.Factories;
+using Fitz.Core.Interfaces;
+using Fitz.Core.Strategies;
+using Fitz.Core.States;
+using Fitz.Core.Models;
 
 namespace TelegramBot_Fitz.Bot
 {
