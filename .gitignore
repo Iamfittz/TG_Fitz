@@ -373,3 +373,34 @@ fredApi.json
 trade.db
 trade.db-wal
 trade.db-shm
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sqlite
+
+# Build output
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+*.cache
+*.g.cs
+*.editorconfig
+
+# NuGet
+project.assets.json
+project.nuget.cache
+*.dgspec.json
+*.nuget.props
+*.nuget.targets
+
+# Coverage
+TestResults/
+*.coverage
+*.coveragexml
+

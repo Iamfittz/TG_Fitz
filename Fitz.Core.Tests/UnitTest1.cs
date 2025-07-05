@@ -1,8 +1,10 @@
 namespace Fitz.Core.Tests {
     public class UnitTest1 {
         [Fact]
-        public void Test1() {
+        public void Calculate_ShouldReturnCorrectMonthlyPayment() {
+            //Arrange
 
+            var calculator = new FixedRate
         }
     }
 }
