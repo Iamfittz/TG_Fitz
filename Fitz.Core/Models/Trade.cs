@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using TG_Fitz.Data;
 
 namespace Fitz.Core.Models {
     public class Trade {
