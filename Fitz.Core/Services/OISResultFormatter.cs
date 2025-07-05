@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TelegramBot_Fitz.Bot;
+using Fitz.Core.Models;
 using TelegramBot_Fitz.Core;
+using Fitz.Core.States;
 
 namespace TG_Fitz.Core
 {

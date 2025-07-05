@@ -10,6 +10,7 @@ using TelegramBot_Fitz.Bot.Handlers;
 using TG_Fitz.Data;
 using TG_Fitz.Bot.Handlers;
 using Microsoft.EntityFrameworkCore;
+using Fitz.Core.States;
 
 namespace TelegramBot_Fitz.Bot
 {

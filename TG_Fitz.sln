@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35818.85 d17.13
+VisualStudioVersion = 17.13.35818.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TG_Fitz", "TG_Fitz.csproj", "{182B3CAF-1EDC-B641-BA75-2C550CE7B841}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fitz.Core", "Fitz.Core\Fitz.Core.csproj", "{159BC549-B177-96C8-3243-857231FC1306}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{182B3CAF-1EDC-B641-BA75-2C550CE7B841}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{182B3CAF-1EDC-B641-BA75-2C550CE7B841}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{182B3CAF-1EDC-B641-BA75-2C550CE7B841}.Release|Any CPU.Build.0 = Release|Any CPU
+		{159BC549-B177-96C8-3243-857231FC1306}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{159BC549-B177-96C8-3243-857231FC1306}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{159BC549-B177-96C8-3243-857231FC1306}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{159BC549-B177-96C8-3243-857231FC1306}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

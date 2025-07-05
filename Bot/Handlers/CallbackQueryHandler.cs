@@ -8,6 +8,12 @@ using Telegram.Bot.Types.ReplyMarkups;
 using TelegramBot_Fitz.Core;
 using TG_Fitz.Core;
 using TG_Fitz.Data;
+using Fitz.Core.Enums;
+using Fitz.Core.Factories;
+using Fitz.Core.Interfaces;
+using Fitz.Core.Strategies;
+using Fitz.Core.States;
+using Fitz.Core.Models;
 
 namespace TelegramBot_Fitz.Bot.Handlers
 {

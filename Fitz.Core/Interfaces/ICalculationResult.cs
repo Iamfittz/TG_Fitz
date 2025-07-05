@@ -4,8 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TG_Fitz.Core
-{
+namespace Fitz.Core.Interfaces {
     public interface ICalculationResult
     {
         decimal TotalInterest { get; set; }

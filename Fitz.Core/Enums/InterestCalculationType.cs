@@ -4,10 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TelegramBot_Fitz.Core
-{
-    public enum InterestCalculationType
-    {
+namespace Fitz.Core.Enums {
+    public enum InterestCalculationType {
         Simple,
         Compound
     }

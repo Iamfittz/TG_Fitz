@@ -11,6 +11,12 @@ using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 using TG_Fitz.Bot.Handlers;
 using TG_Fitz.Data;
+using Fitz.Core.Enums;
+using Fitz.Core.Factories;
+using Fitz.Core.Interfaces;
+using Fitz.Core.Strategies;
+using Fitz.Core.States;
+using Fitz.Core.Models;
 
 namespace TelegramBot_Fitz.Bot.Handlers
 {
@@ -57,7 +63,7 @@ namespace TelegramBot_Fitz.Bot.Handlers
             userAlreadyExist = existingUser != null;
             if (!userAlreadyExist) 
             {
-                var newUser = new TG_Fitz.Data.User
+                var newUser = new Fitz.Core.Models.User
                 {
                     TG_ID = chatId,
                     Username = message?.From?.Username

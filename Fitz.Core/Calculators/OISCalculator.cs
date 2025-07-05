@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TelegramBot_Fitz.Bot;
+using Fitz.Core.States;
+using Fitz.Core.Interfaces;
+using Fitz.Core.Models;
 
 namespace TelegramBot_Fitz.Core
 {
@@ -18,18 +20,15 @@ namespace TelegramBot_Fitz.Core
             decimal dailyRate = rate / 360;
             return amount * (dailyRate / 100) * days;
         }
-
         public decimal CalculateTotalPayment(UserState state)
         {
             return state.LoanAmount + CalculateInterest(state.LoanAmount, state.FirstRate, state.Days);
         }
-
         public OISCalculationResult CalculateOIS(UserState state)
         {
             decimal dailyRate = state.FirstRate / 360;
             decimal totalInterest = CalculateInterest(state.LoanAmount, state.FirstRate, state.Days);
             decimal totalPayment = CalculateTotalPayment(state);
-
             return new OISCalculationResult
             {
                 DailyRate = dailyRate,
@@ -37,7 +36,6 @@ namespace TelegramBot_Fitz.Core
                 TotalPayment = totalPayment
             };
         }
-
         public string FormatCalculationResult(OISCalculationResult result, UserState state)
         {
             return $"OIS Calculation Results:\n" +

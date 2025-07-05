@@ -1,18 +1,10 @@
 ﻿using TelegramBot_Fitz.Core;
 using TG_Fitz.Core;
+using Fitz.Core.Enums;
 
-namespace TelegramBot_Fitz.Bot
-{
-    public enum CalculationType
-    {
-        None,
-        FixedRate,
-        FloatingRate,
-        OIS
-    }
+namespace Fitz.Core.States {
 
-    public class UserState
-    {
+    public class UserState {
         public int Step { get; set; } = 0;
         public decimal LoanAmount { get; set; }
         public int LoanYears { get; set; }
@@ -30,20 +22,16 @@ namespace TelegramBot_Fitz.Bot
         public int CurrentFloatingPeriod { get; set; } = 1;
         public List<decimal> FloatingRates { get; set; } = new();
 
-        public int TotalFloatingPeriods
-        {
-            get
-            {
+        public int TotalFloatingPeriods {
+            get {
                 int months = LoanYears * 12;
                 return months / (int)FloatingRateResetPeriod;
             }
         }
-        public void InitilizeYearlyRates()
-        {
+        public void InitilizeYearlyRates() {
             YearlyRates = new decimal[LoanYears];
         }
-        public void Reset()
-        {
+        public void Reset() {
             Step = 0;
             LoanAmount = 0;
             LoanYears = 0;
