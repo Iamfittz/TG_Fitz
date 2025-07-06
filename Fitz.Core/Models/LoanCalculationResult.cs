@@ -13,6 +13,6 @@ namespace Fitz.Core.Models {
         public decimal TotalInterest { get; set; }
         public decimal TotalPayment { get; set; }
 
-        public YearlyCalculation[] YearlyCalculations { get; set; } = Array.Empty<YearlyCalculation>(); // Теперь не null
+        public YearlyCalculation[] YearlyCalculations { get; set; } = Array.Empty<YearlyCalculation>(); 
     }
 }

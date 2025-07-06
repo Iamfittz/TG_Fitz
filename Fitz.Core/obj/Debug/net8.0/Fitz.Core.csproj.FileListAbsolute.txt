@@ -1,9 +1,0 @@
-C:\Users\User\source\repos\Fitz.Core\bin\Debug\net8.0\Fitz.Core.deps.json
-C:\Users\User\source\repos\Fitz.Core\bin\Debug\net8.0\Fitz.Core.dll
-C:\Users\User\source\repos\Fitz.Core\bin\Debug\net8.0\Fitz.Core.pdb
-C:\Users\User\source\repos\Fitz.Core\obj\Debug\net8.0\Fitz.Core.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\User\source\repos\Fitz.Core\obj\Debug\net8.0\Fitz.Core.csproj.CoreCompileInputs.cache
-C:\Users\User\source\repos\Fitz.Core\obj\Debug\net8.0\Fitz.Core.dll
-C:\Users\User\source\repos\Fitz.Core\obj\Debug\net8.0\refint\Fitz.Core.dll
-C:\Users\User\source\repos\Fitz.Core\obj\Debug\net8.0\Fitz.Core.pdb
-C:\Users\User\source\repos\Fitz.Core\obj\Debug\net8.0\ref\Fitz.Core.dll

@@ -8,10 +8,10 @@ using Fitz.Core.States;
 
 namespace TelegramBot_Fitz.Core {
     public class FixedRateLoanCalculator : ILoanCalculator {
-        public decimal CalculateInterest(UserState state) {
-            var strategy = InterestCalculationFactory.GetStrategy(state.InterestCalculationType);
-            return strategy.CalculateInterest(state.LoanAmount, state.YearlyRates.Average(), state.LoanYears);
-        }
+        //public decimal CalculateInterest(UserState state) {
+        //    var strategy = InterestCalculationFactory.GetStrategy(state.InterestCalculationType);
+        //    return strategy.CalculateInterest(state.LoanAmount, state.YearlyRates.Average(), state.LoanYears);
+        //}
 
         public LoanCalculationResult CalculateLoan(decimal loanAmount, decimal[] yearlyRates, InterestCalculationType calculationType) {
             var strategy = InterestCalculationFactory.GetStrategy(calculationType);
