@@ -90,7 +90,10 @@ namespace TelegramBot_Fitz.Bot.Handlers
                     await _messageHandlers.ShowWelcomeMessage(chatId);
                     return;
                 }
-
+                if (text.StartsWith("/history")) {
+                    await _messageHandlers.ShowTradeHistory(chatId); 
+                    return;
+                }
                 if (text == "/sofr")
                 {
                     await _sofrHandlers.HandleSofrCommand(chatId, _botСlient);

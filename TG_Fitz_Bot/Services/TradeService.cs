@@ -10,10 +10,13 @@ using Fitz.Core.States;
 namespace Fitz.Core.Models;
 
 public class TradeService {
+    private readonly AppDbContext _db;
+    public TradeService(AppDbContext db) {
+        _db = db;
+    }
     public async Task SaveTradeAsync(long chatId, UserState state, string? companyName = null) {
-        using var db = new AppDbContext();
 
-        var user = db.Users.FirstOrDefault(u => u.TG_ID == chatId);
+        var user = _db.Users.FirstOrDefault(u => u.TG_ID == chatId);
         if (user == null) {
             Console.WriteLine($"❌ User not found for TG_ID: {chatId}");
             return;
@@ -27,8 +30,8 @@ public class TradeService {
             UserId = user.Id
         };
 
-        db.Trades.Add(trade);
-        await db.SaveChangesAsync();
+        _db.Trades.Add(trade);
+        await _db.SaveChangesAsync();
         Console.WriteLine($"✅ Trade saved for user {chatId}");
     }
 
