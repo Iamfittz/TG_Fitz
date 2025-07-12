@@ -12,6 +12,7 @@ using Fitz.Core.Interfaces;
 using Fitz.Core.Strategies;
 using Fitz.Core.States;
 using Fitz.Core.Models;
+using TG_Fitz.Core;
 
 namespace TelegramBot_Fitz.Bot {
     public class CalculationHandlers {
@@ -111,7 +112,7 @@ namespace TelegramBot_Fitz.Bot {
 
             if (calculator is OISCalculator oisCalculator) {
                 var calculationResult = oisCalculator.CalculateOIS(state);
-                var resultMessage = oisCalculator.FormatCalculationResult(calculationResult, state);
+                var resultMessage = OISResultFormatter.FormatCalculationResult(calculationResult, state);
                 await _botClient.SendMessage(chatId, resultMessage);
             } else {
                 await _botClient.SendMessage(chatId, "❌ Error: Incorrect calculator type for OIS.");
