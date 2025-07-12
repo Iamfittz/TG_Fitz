@@ -7,6 +7,7 @@ using TG_Fitz.Data;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using System.Reflection;
+using Fitz.Core.Models;
 
 namespace TelegramBot_Fitz {
     internal class Program {
@@ -46,7 +47,16 @@ namespace TelegramBot_Fitz {
                 options.UseSqlite(connectionString));
             services.AddHttpClient<SofrService>(); // Регистрируем HttpClient для SofrService
             services.AddScoped<SofrService>(); // Регистрируем SofrService
-            services.AddScoped<BotService>();
+            services.AddScoped<BotService>(sp =>
+            {
+                var token = sp.GetRequiredService<string>();
+                var db = sp.GetRequiredService<AppDbContext>();
+                var sofr = sp.GetRequiredService<SofrService>();
+                var tradeService = sp.GetRequiredService<TradeService>();
+                return new BotService(token, db, sofr, tradeService);
+            });
+
+            services.AddScoped<TradeService>();
             var serviceProvider = services.BuildServiceProvider();
 
 
@@ -84,7 +94,6 @@ namespace TelegramBot_Fitz {
                 Console.WriteLine($"Unexpected error: {ex.Message}");
                 botService.Stop();
             } finally {
-                // Здесь можно добавить финальную очистку, которая сработает в 100% случаях
                 Console.WriteLine("Bot has stopped.");
             }
         }
