@@ -11,7 +11,7 @@ namespace TG_Fitz.Core
 {
     public class OISResultFormatter
     {
-        public string FormatCalculationResult(OISCalculationResult result, UserState state)
+        public static string FormatCalculationResult(OISCalculationResult result, UserState state)
         {
             return $"OIS Calculation Results:\n" +
                    $"Daily Rate: {result.DailyRate:F6}%\n" +
