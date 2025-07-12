@@ -11,10 +11,10 @@ namespace TelegramBot_Fitz.Core
 {
     public class OISCalculator : ILoanCalculator
     {
-        public decimal CalculateInterest(UserState state)
-        {
-            return CalculateInterest(state.LoanAmount, state.FirstRate, state.Days);
-        }
+        //public decimal CalculateInterest(UserState state)
+        //{
+        //    return CalculateInterest(state.LoanAmount, state.FirstRate, state.Days);
+        //}
         private decimal CalculateInterest(decimal amount, decimal rate, int days)
         {
             decimal dailyRate = rate / 360;
@@ -35,15 +35,6 @@ namespace TelegramBot_Fitz.Core
                 TotalInterest = totalInterest,
                 TotalPayment = totalPayment
             };
-        }
-        public string FormatCalculationResult(OISCalculationResult result, UserState state)
-        {
-            return $"OIS Calculation Results:\n" +
-                   $"Daily Rate: {result.DailyRate:F6}%\n" +
-                   $"Total Interest: {result.TotalInterest:F2} USD\n" +
-                   $"Total Payment: {result.TotalPayment:F2} USD\n" +
-                   $"Period: {state.Days} days\n" +
-                   $"Overnight Rate: {state.FirstRate}%";
         }
     }
 }
