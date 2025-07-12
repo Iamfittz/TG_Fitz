@@ -16,10 +16,13 @@ using Fitz.Core.Models;
 namespace TelegramBot_Fitz.Bot {
     public class CalculationHandlers {
         private readonly ITelegramBotClient _botClient;
+        private readonly TradeService _tradeService;
 
-        public CalculationHandlers(ITelegramBotClient botClient) {
+        public CalculationHandlers(ITelegramBotClient botClient, TradeService tradeService) {
             _botClient = botClient;
+            _tradeService = tradeService;
         }
+
 
         public async Task HandleFixedRateCalculation(long chatId, UserState state) {
             var calculator = CalculatorFactory.GetCalculator(state.CalculationType);
@@ -66,8 +69,7 @@ namespace TelegramBot_Fitz.Bot {
             }
 
             // Сохраняем трейд в базу
-            var tradeService = new TradeService();
-            await tradeService.SaveTradeAsync(chatId, state);
+            await _tradeService.SaveTradeAsync(chatId, state);
 
             state.Reset();
         }
@@ -75,40 +77,32 @@ namespace TelegramBot_Fitz.Bot {
         public async Task HandleFloatingRateCalculation(long chatId, UserState state) {
             var calculator = CalculatorFactory.GetCalculator(state.CalculationType);
 
-            if (calculator is FloatingRateLoanCalculator floatingCalculator) {
-                floatingCalculator.LoanAmount = state.LoanAmount;
-                floatingCalculator.TotalYears = state.LoanYears;
-
-                decimal totalInterest = floatingCalculator.CalculateTotalInterest(state);
-                decimal totalPayment = floatingCalculator.CalculateTotalPayment(state);
-
-                var sb = new StringBuilder();
-                sb.AppendLine($"📊 Floating Rate Calculation");
-                sb.AppendLine($"🏢 Company: {state.CompanyName ?? "Untitled"}");
-                sb.AppendLine($"💰 Loan Amount: {state.LoanAmount:F2} USD");
-                sb.AppendLine($"📅 Duration: {state.LoanYears} years");
-                sb.AppendLine($"🔁 Reset every {(int)state.FloatingRateResetPeriod} months");
-                sb.AppendLine();
-
-                for (int i = 0; i < state.FloatingRates.Count; i++) {
-                    var rate = state.FloatingRates[i];
-                    sb.AppendLine($"📌 Period {i + 1}: {rate}%");
-                }
-
-                sb.AppendLine();
-                sb.AppendLine($"💸 Total Interest: {totalInterest:F2} USD");
-                sb.AppendLine($"💵 Total Payment: {totalPayment:F2} USD");
-
-                await _botClient.SendMessage(chatId, sb.ToString());
-
-                // ✅ сохранить сделку
-                var tradeService = new TradeService();
-                await tradeService.SaveTradeAsync(chatId, state);
-
-                state.Reset();
-            } else {
-                await _botClient.SendMessage(chatId, "❌ Error: Incorrect calculator type for floating rate.");
+            if (calculator is not IFloatingRateCalculator floatingCalculator) {
+                await _botClient.SendMessage(chatId, "❌ Internal error: Expected floating rate calculator.");
+                return;
             }
+
+            var breakdown = floatingCalculator.GetInterestBreakdown(state);
+            decimal totalInterest = breakdown.Sum(p => p.Interest);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("📊 Floating Rate Calculation");
+            sb.AppendLine($"🏢 Company: {state.CompanyName ?? "Untitled"}");
+            sb.AppendLine($"💰 Loan Amount: {state.LoanAmount:F2} USD");
+            sb.AppendLine($"📅 Duration: {state.LoanYears} years");
+            sb.AppendLine($"🔁 Reset every {(int)state.FloatingRateResetPeriod} months\n");
+
+            foreach (var period in breakdown) {
+                sb.AppendLine($"📌 Period {period.PeriodNumber}: {period.Rate}% → {period.Interest:F2} USD");
+            }
+
+            sb.AppendLine($"\n💸 Total Interest: {totalInterest:F2} USD");
+
+            await _botClient.SendMessage(chatId, sb.ToString());
+
+            await _tradeService.SaveTradeAsync(chatId, state);
+
+            state.Reset();
         }
 
 

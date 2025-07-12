@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Telegram.Bot.Types.ReplyMarkups;
 using Telegram.Bot;
 using TG_Fitz.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -63,14 +64,11 @@ namespace TelegramBot_Fitz.Bot
 
         public async Task ShowTradeHistory(long chatId)
         {
-            
-            var user = _dbContext.Users
-                .Where(u => u.TG_ID == chatId)
-                .Select(u => new
-                {
-                    u.Trades
-                })
-                .FirstOrDefault();
+
+            var user = await _dbContext.Users
+                .Include(u => u.Trades) 
+                .FirstOrDefaultAsync(u => u.TG_ID == chatId);
+
 
             if (user == null || user.Trades == null || !user.Trades.Any())
             {
@@ -96,22 +94,6 @@ namespace TelegramBot_Fitz.Bot
                 "Your saved trades:",
                 replyMarkup: keyboard
             );
-
-            //var sb = new StringBuilder();
-            //sb.AppendLine("Your transactions:\n");
-
-            //foreach (var trade in user.Trades.OrderByDescending(t => t.CreatedAt))
-            //{
-            //    sb.AppendLine($"🏢 {trade.CompanyName ?? "Untitled"}");
-            //    sb.AppendLine($"💰 Loan: {trade.LoanAmount} USD");
-            //    sb.AppendLine($"📅 Duration: {trade.Years} years");
-            //    sb.AppendLine($"🕓 Date: {trade.CreatedAt:yyyy-MM-dd}");
-            //    sb.AppendLine("———");
-            //}
-
-            //await _botClient.SendMessage(chatId, sb.ToString());
         }
-
-
     }
 }

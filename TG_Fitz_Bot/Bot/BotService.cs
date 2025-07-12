@@ -11,6 +11,7 @@ using TG_Fitz.Data;
 using TG_Fitz.Bot.Handlers;
 using Microsoft.EntityFrameworkCore;
 using Fitz.Core.States;
+using Fitz.Core.Models;
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -28,19 +29,20 @@ namespace TelegramBot_Fitz.Bot
         private readonly SofrHandlers _sofrHandlers;
         private readonly AppDbContext _dbContext;
 
-        public BotService(string token, AppDbContext dbContext, SofrService sofrService)
+        public BotService(string token, AppDbContext dbContext, SofrService sofrService, TradeService tradeService)
         {
             _botClient = new TelegramBotClient(token);
             _userStates = new Dictionary<long, UserState>();
 
             _dbContext = dbContext;
+            
             var fixedCalculator = new FixedRateLoanCalculator();
             var floatingCalculator = new FloatingRateLoanCalculator();
             var oisCalculator = new OISCalculator();
             var sofrHandlers = new SofrHandlers(sofrService); // Используем переданный sofrService
 
             _messageHandlers = new MessageHandlers(_botClient, _dbContext);
-            _calculationHandlers = new CalculationHandlers(_botClient);
+            _calculationHandlers = new CalculationHandlers(_botClient, tradeService);
             _inputHandlers = new InputHandlers(_botClient, _calculationHandlers);
             _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers, _dbContext);
             _sofrHandlers = sofrHandlers;
