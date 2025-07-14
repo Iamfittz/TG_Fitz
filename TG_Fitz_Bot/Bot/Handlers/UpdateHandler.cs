@@ -115,7 +115,7 @@ namespace TelegramBot_Fitz.Bot.Handlers
                         if (userState.CalculationType == CalculationType.FloatingRate)
                             await _inputHandlers.HandleFloatingRateInput(chatId, userState, text);
                         else
-                            await _inputHandlers.HandleRateInput(chatId, userState, text);
+                            await _inputHandlers.HandleRateInput(chatId, userState, text, userState.DayCountConvention);
                         break;
 
                     case 5:
