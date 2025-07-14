@@ -10,18 +10,16 @@ namespace Fitz.Core.States {
         public int LoanYears { get; set; }
         public int Days { get; set; }
         public string? CompanyName { get; set; }
-
         public decimal[] YearlyRates { get; set; } = Array.Empty<decimal>(); // Гарантированно не null
         public int CurrentYear { get; set; }
         public decimal FirstRate { get; set; }
         public decimal SecondRate { get; set; }
         public CalculationType CalculationType { get; set; } = CalculationType.None; // Тип расчета (Fixed или Floating)
         public InterestCalculationType InterestCalculationType { get; set; }
-
         public FloatingRateResetPeriod FloatingRateResetPeriod { get; set; } = new();
         public int CurrentFloatingPeriod { get; set; } = 1;
         public List<decimal> FloatingRates { get; set; } = new();
-
+        public DayCountConvention DayCountConvention { get; set; } = DayCountConvention.Actual360;
         public int TotalFloatingPeriods {
             get {
                 int months = LoanYears * 12;
