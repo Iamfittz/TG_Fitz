@@ -120,11 +120,45 @@ namespace TelegramBot_Fitz.Bot.Handlers
                         break;
                     case "IRS_OIS":
                         state.CalculationType = CalculationType.OIS;
+
                         await _botClient.SendMessage(chatId,
                             "You've selected OIS (Overnight Index Swap).\n" +
-                            "Please enter the notional amount:");
+                            "💰 Please enter the notional amount:");
                         state.Step = 2;
                         break;
+
+                    case "OIS_Actual360":
+                        state.DayCountConvention = DayCountConvention.Actual360;
+                        await _botClient.SendMessage(chatId,
+                            "📅 You selected Actual/360.\n" +
+                            "Please enter the overnight interest rate:");
+                        state.Step = 4;
+                        break;
+
+                    case "OIS_Actual365":
+                        state.DayCountConvention = DayCountConvention.Actual365;
+                        await _botClient.SendMessage(chatId,
+                            "📅 You selected Actual/365.\n" +
+                            "Please enter the overnight interest rate:");
+                        state.Step = 4;
+                        break;
+
+                    case "OIS_Thirty360":
+                        state.DayCountConvention = DayCountConvention.Thirty360;
+                        await _botClient.SendMessage(chatId,
+                            "📅 You selected 30/360.\n" +
+                            "Please enter the overnight interest rate:");
+                        state.Step = 4;
+                        break;
+
+                    case "OIS_ActualActual":
+                        state.DayCountConvention = DayCountConvention.ActualActual;
+                        await _botClient.SendMessage(chatId,
+                            "📅 You selected Actual/Actual.\n" +
+                            "Please enter the overnight interest rate:");
+                        state.Step = 4;
+                        break;
+
                     case "FixedRate":
                         state.CalculationType = CalculationType.FixedRate;
 

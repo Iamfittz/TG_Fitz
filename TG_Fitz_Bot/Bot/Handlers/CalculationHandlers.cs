@@ -107,11 +107,11 @@ namespace TelegramBot_Fitz.Bot {
         }
 
 
-        public async Task HandleOISCalculation(long chatId, UserState state) {
+        public async Task HandleOISCalculation(long chatId, UserState state, DayCountConvention dayCountConvention) {
             var calculator = CalculatorFactory.GetCalculator(state.CalculationType);
 
             if (calculator is OISCalculator oisCalculator) {
-                var calculationResult = oisCalculator.CalculateOIS(state);
+                var calculationResult = oisCalculator.CalculateOIS(state,dayCountConvention);
                 var resultMessage = OISResultFormatter.FormatCalculationResult(calculationResult, state);
                 await _botClient.SendMessage(chatId, resultMessage);
             } else {
