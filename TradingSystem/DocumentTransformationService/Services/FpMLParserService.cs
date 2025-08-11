@@ -1,17 +1,31 @@
 ﻿using System.Xml.Linq;
 using DocumentTransformationService.Models.Trade;
+using CalculationService.Core.Enums;
 
 namespace DocumentTransformationService.Services;
 
 public class FpMLParserService : IFpMLParserService {
     private readonly ILogger<FpMLParserService> _logger;
 
+    // Dictionary mapping for XML strings to enums - BANKING PRECISION!
+    private static readonly Dictionary<string, DayCountConvention> DayCountMappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "ACT/360", DayCountConvention.Actual360 },
+        { "ACTUAL/360", DayCountConvention.Actual360 },
+        { "ACT/365", DayCountConvention.Actual365 },
+        { "ACTUAL/365", DayCountConvention.Actual365 },
+        { "30/360", DayCountConvention.Thirty360 },
+        { "30E/360", DayCountConvention.Thirty360 },
+        { "ACT/ACT", DayCountConvention.ActualActual },
+        { "ACTUAL/ACTUAL", DayCountConvention.ActualActual }
+    };
+
     public FpMLParserService(ILogger<FpMLParserService> logger) {
         _logger = logger;
     }
 
     /// <summary>
-    /// 📄 Парсит FpML XML документ в структурированную модель
+    /// Parse FpML XML document into structured model
     /// </summary>
     public async Task<ParsedTrade> ParseFpMLAsync(string xmlContent) {
         try {
@@ -20,16 +34,16 @@ public class FpMLParserService : IFpMLParserService {
 
             var trade = new ParsedTrade();
 
-            // Парсим основную информацию о сделке
+            // Parse main trade information
             ParseTradeHeader(doc, ns, trade);
 
-            // Парсим свопы (если это IRS)
+            // Parse swaps (if IRS)
             if (IsInterestRateSwap(doc, ns)) {
                 trade.InstrumentType = "InterestRateSwap";
                 ParseSwapStreams(doc, ns, trade);
             }
 
-            // Парсим участников
+            // Parse parties
             ParseParties(doc, ns, trade);
 
             _logger.LogInformation("Successfully parsed FpML document for trade {TradeId}", trade.TradeId);
@@ -42,13 +56,13 @@ public class FpMLParserService : IFpMLParserService {
     }
 
     /// <summary>
-    /// ✅ Проверяет валидность FpML документа
+    /// Check if FpML document is valid
     /// </summary>
     public bool IsValidFpML(string xmlContent) {
         try {
             var doc = XDocument.Parse(xmlContent);
 
-            // Проверяем что это FpML документ
+            // Check if it's FpML document
             var root = doc.Root;
             if (root == null) return false;
 
@@ -60,7 +74,7 @@ public class FpMLParserService : IFpMLParserService {
     }
 
     /// <summary>
-    /// 🔍 Определяет тип инструмента из FpML
+    /// Determine instrument type from FpML
     /// </summary>
     public string GetInstrumentType(string xmlContent) {
         try {
@@ -77,44 +91,59 @@ public class FpMLParserService : IFpMLParserService {
         }
     }
 
+    // HELPER: Parse DayCount string to enum
+    private static DayCountConvention? ParseDayCountConvention(string? xmlValue) {
+        if (string.IsNullOrEmpty(xmlValue))
+            return null;
+
+        return DayCountMappings.TryGetValue(xmlValue, out var result) ? result : null;
+    }
+
     private void ParseTradeHeader(XDocument doc, XNamespace ns, ParsedTrade trade) {
         var tradeHeader = doc.Descendants(ns + "tradeHeader").FirstOrDefault();
         if (tradeHeader == null) return;
 
-        // Trade ID
+        // Trade ID - PRESERVE ORIGINAL!
         var tradeId = tradeHeader.Descendants(ns + "tradeId").FirstOrDefault()?.Value;
         trade.TradeId = tradeId ?? Guid.NewGuid().ToString();
+        _logger.LogInformation("Original TradeId preserved: {TradeId}", trade.TradeId);
 
         // Trade Date
         var tradeDateStr = tradeHeader.Descendants(ns + "tradeDate").FirstOrDefault()?.Value;
         if (DateTime.TryParse(tradeDateStr, out DateTime tradeDate)) {
             trade.TradeDate = tradeDate;
+            _logger.LogInformation("Trade Date: {TradeDate}", tradeDate.ToString("yyyy-MM-dd"));
         }
     }
 
     private void ParseSwapStreams(XDocument doc, XNamespace ns, ParsedTrade trade) {
         var swapStreams = doc.Descendants(ns + "swapStream").ToList();
+        _logger.LogInformation("Found {Count} swap streams", swapStreams.Count);
 
         foreach (var stream in swapStreams) {
             var leg = new SwapLeg();
 
-            // Определяем участников
+            // Parse participants
             leg.PayerParty = stream.Descendants(ns + "payerPartyReference").FirstOrDefault()?.Attribute("href")?.Value ?? "";
             leg.ReceiverParty = stream.Descendants(ns + "receiverPartyReference").FirstOrDefault()?.Attribute("href")?.Value ?? "";
 
-            // Парсим даты
+            // Parse dates
             ParseSwapDates(stream, ns, trade);
 
-            // Определяем тип ноги и парсим соответствующие данные
+            // Determine leg type and parse accordingly
             if (stream.Descendants(ns + "fixedRateSchedule").Any()) {
                 ParseFixedLeg(stream, ns, leg);
                 trade.FixedLeg = leg;
+                _logger.LogInformation("Fixed leg: Rate={Rate}%, DayCount={DayCount}, PaymentFreq={Freq}",
+                    leg.FixedRate, leg.DayCountFraction, leg.PaymentFrequency);
             } else if (stream.Descendants(ns + "floatingRateCalculation").Any()) {
                 ParseFloatingLeg(stream, ns, leg);
                 trade.FloatingLeg = leg;
+                _logger.LogInformation("Floating leg: Index={Index}, Tenor={Tenor}, DayCount={DayCount}",
+                    leg.FloatingRateIndex, leg.IndexTenor, leg.DayCountFraction);
             }
 
-            // Парсим общие данные
+            // Parse common data
             ParseCommonLegData(stream, ns, leg, trade);
         }
     }
@@ -141,12 +170,22 @@ public class FpMLParserService : IFpMLParserService {
     private void ParseFixedLeg(XElement stream, XNamespace ns, SwapLeg leg) {
         leg.LegType = "Fixed";
 
+        // PRESERVE ORIGINAL RATE VALUE - NO CONVERSION!
         var fixedRateStr = stream.Descendants(ns + "fixedRateSchedule")
             .Descendants(ns + "initialValue").FirstOrDefault()?.Value;
 
         if (decimal.TryParse(fixedRateStr, out decimal fixedRate)) {
-            leg.FixedRate = fixedRate * 100; // Конвертируем в проценты
+            leg.FixedRate = fixedRate; // Keep as 0.00608, not 0.608%
+            _logger.LogInformation("Original fixed rate preserved: {Rate}", fixedRate);
         }
+
+        // BANKING PRECISION: Parse Day Count Convention
+        var dayCountStr = stream.Descendants(ns + "dayCountFraction").FirstOrDefault()?.Value;
+        leg.DayCountFraction = dayCountStr ?? "";
+        leg.DayCountConvention = ParseDayCountConvention(dayCountStr);
+
+        _logger.LogInformation("Fixed leg day count: {DayCountStr} -> {DayCountEnum}",
+            dayCountStr, leg.DayCountConvention);
     }
 
     private void ParseFloatingLeg(XElement stream, XNamespace ns, SwapLeg leg) {
@@ -155,20 +194,27 @@ public class FpMLParserService : IFpMLParserService {
         var floatingRateCalc = stream.Descendants(ns + "floatingRateCalculation").FirstOrDefault();
         if (floatingRateCalc == null) return;
 
+        // Floating rate index
         leg.FloatingRateIndex = floatingRateCalc.Descendants(ns + "floatingRateIndex").FirstOrDefault()?.Value;
 
+        // Index tenor
         var indexTenor = floatingRateCalc.Descendants(ns + "indexTenor").FirstOrDefault();
         if (indexTenor != null) {
             var multiplier = indexTenor.Descendants(ns + "periodMultiplier").FirstOrDefault()?.Value;
             var period = indexTenor.Descendants(ns + "period").FirstOrDefault()?.Value;
             leg.IndexTenor = $"{multiplier}{period}";
         }
+
+        // BANKING PRECISION: Parse Day Count Convention for floating leg
+        var dayCountStr = stream.Descendants(ns + "dayCountFraction").FirstOrDefault()?.Value;
+        leg.DayCountFraction = dayCountStr ?? "";
+        leg.DayCountConvention = ParseDayCountConvention(dayCountStr);
+
+        _logger.LogInformation("Floating leg day count: {DayCountStr} -> {DayCountEnum}",
+            dayCountStr, leg.DayCountConvention);
     }
 
     private void ParseCommonLegData(XElement stream, XNamespace ns, SwapLeg leg, ParsedTrade trade) {
-        // Day Count Fraction
-        leg.DayCountFraction = stream.Descendants(ns + "dayCountFraction").FirstOrDefault()?.Value ?? "";
-
         // Notional Amount
         var notionalStr = stream.Descendants(ns + "notionalSchedule")
             .Descendants(ns + "initialValue").FirstOrDefault()?.Value;
@@ -176,10 +222,11 @@ public class FpMLParserService : IFpMLParserService {
             trade.NotionalAmount = notional;
         }
 
-        // Currency
+        // Currency - PRESERVE!
         var currency = stream.Descendants(ns + "currency").FirstOrDefault()?.Value;
         if (!string.IsNullOrEmpty(currency)) {
             trade.Currency = currency;
+            _logger.LogInformation("Currency preserved: {Currency}", currency);
         }
 
         // Payment Frequency

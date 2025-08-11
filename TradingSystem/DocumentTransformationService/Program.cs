@@ -1,5 +1,6 @@
 ﻿using DocumentTransformationService.Services;
-using DocumentTransformationService.Models;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 
 namespace DocumentTransformationService;
@@ -12,13 +13,16 @@ public class Program {
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
 
-        // 📚 Swagger
+        // 📚 Swagger с поддержкой файлов
         builder.Services.AddSwaggerGen(c => {
             c.SwaggerDoc("v1", new() {
                 Title = "Document Transformation Service",
                 Version = "v1",
                 Description = "API для трансформации FpML/XML документов в торговые инструменты"
             });
+
+            // 📁 Поддержка загрузки файлов в Swagger
+            c.OperationFilter<FileUploadOperationFilter>();
         });
 
         // 🔧 HTTP клиенты для других сервисов
@@ -27,9 +31,8 @@ public class Program {
         });
 
         // 🧮 Регистрируем наши сервисы
-        // 🧮 Регистрируем наши сервисы ПРАВИЛЬНО
-        //builder.Services.AddScoped<DocumentTransformationService.Services.IFpMLParserService, DocumentTransformationService.Services.FpMLParserService>();
-        //builder.Services.AddScoped<DocumentTransformationService.Services.ITradeTransformationService, DocumentTransformationService.Services.TradeTransformationService>();
+        builder.Services.AddScoped<IFpMLParserService, FpMLParserService>();
+        builder.Services.AddScoped<ITradeTransformationService, TradeTransformationService>();
 
         // 🌐 CORS
         builder.Services.AddCors(options => {
@@ -45,7 +48,10 @@ public class Program {
         // ⚙️ Настройка pipeline
         if (app.Environment.IsDevelopment()) {
             app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseSwaggerUI(c => {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Document Transformation Service v1");
+                c.RoutePrefix = "swagger";
+            });
         }
 
         app.UseHttpsRedirection();
@@ -54,5 +60,40 @@ public class Program {
         app.MapControllers();
 
         app.Run();
+    }
+}
+
+// 📁 Фильтр для поддержки загрузки файлов в Swagger
+
+public class FileUploadOperationFilter : IOperationFilter {
+    public void Apply(OpenApiOperation operation, OperationFilterContext context) {
+        var fileParameters = context.MethodInfo.GetParameters()
+            .Where(p => p.ParameterType == typeof(IFormFile))
+            .ToList();
+
+        if (fileParameters.Any()) {
+            operation.RequestBody = new OpenApiRequestBody {
+                Content = {
+                    ["multipart/form-data"] = new OpenApiMediaType {
+                        Schema = new OpenApiSchema {
+                            Type = "object",
+                            Properties = {
+                                ["file"] = new OpenApiSchema {
+                                    Type = "string",
+                                    Format = "binary"
+                                },
+                                ["autoCalculate"] = new OpenApiSchema {
+                                    Type = "boolean",
+                                    Default = new Microsoft.OpenApi.Any.OpenApiBoolean(true)
+                                },
+                                ["notes"] = new OpenApiSchema {
+                                    Type = "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+        }
     }
 }

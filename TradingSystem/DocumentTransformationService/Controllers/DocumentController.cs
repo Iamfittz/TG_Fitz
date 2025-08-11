@@ -1,22 +1,22 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using DocumentTransformationService.Models.Document;
-// using DocumentTransformationService.Services;  // ВРЕМЕННО ЗАКОММЕНТИРОВАНО
+using DocumentTransformationService.Services;
 
 namespace DocumentTransformationService.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
 public class DocumentController : ControllerBase {
-    // private readonly IFpMLParserService _fpmlParser;              // ЗАКОММЕНТИРОВАНО
-    // private readonly ITradeTransformationService _transformationService; // ЗАКОММЕНТИРОВАНО
+    private readonly IFpMLParserService _fpmlParser;
+    private readonly ITradeTransformationService _transformationService;
     private readonly ILogger<DocumentController> _logger;
 
     public DocumentController(
-        // IFpMLParserService fpmlParser,                    // ЗАКОММЕНТИРОВАНО
-        // ITradeTransformationService transformationService, // ЗАКОММЕНТИРОВАНО
+        IFpMLParserService fpmlParser,
+        ITradeTransformationService transformationService,
         ILogger<DocumentController> logger) {
-        // _fpmlParser = fpmlParser;              // ЗАКОММЕНТИРОВАНО
-        // _transformationService = transformationService; // ЗАКОММЕНТИРОВАНО
+        _fpmlParser = fpmlParser;
+        _transformationService = transformationService;
         _logger = logger;
     }
 
@@ -24,25 +24,30 @@ public class DocumentController : ControllerBase {
     /// 📁 Загрузить FpML файл и трансформировать его
     /// </summary>
     [HttpPost("upload")]
-    public async Task<IActionResult> UploadDocument(
-        [FromForm] IFormFile file,
-        [FromForm] bool autoCalculate = true,
-        [FromForm] string? notes = null) {
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadDocument(IFormFile file, bool autoCalculate = true, string? notes = null) {
         try {
+            _logger.LogInformation("=== НАЧАЛО ОБРАБОТКИ ФАЙЛА ===");
+
             // Валидация файла
             if (file == null || file.Length == 0) {
+                _logger.LogWarning("Файл не загружен");
                 return BadRequest(new { Error = "No file uploaded" });
             }
+
+            _logger.LogInformation("Файл получен: {FileName}, размер: {Size} байт", file.FileName, file.Length);
 
             // Проверяем расширение файла
             var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (!IsValidFileExtension(fileExtension)) {
+                _logger.LogWarning("Неподдерживаемый тип файла: {Extension}", fileExtension);
                 return BadRequest(new { Error = $"Unsupported file type: {fileExtension}. Expected: .xml, .fpml" });
             }
 
             // Ограничение размера файла (10MB)
             const long maxFileSize = 10 * 1024 * 1024;
             if (file.Length > maxFileSize) {
+                _logger.LogWarning("Файл слишком большой: {Size} байт", file.Length);
                 return BadRequest(new { Error = $"File too large. Max size: {maxFileSize / 1024 / 1024}MB" });
             }
 
@@ -52,38 +57,113 @@ public class DocumentController : ControllerBase {
                 xmlContent = await reader.ReadToEndAsync();
             }
 
+            _logger.LogInformation("XML содержимое загружено, длина: {Length} символов", xmlContent.Length);
+            _logger.LogInformation("Первые 200 символов XML: {Preview}",
+                xmlContent.Length > 200 ? xmlContent.Substring(0, 200) + "..." : xmlContent);
+
             // Генерируем уникальное имя файла
             var generatedFileName = GenerateFileName(file.FileName);
+            _logger.LogInformation("Сгенерировано имя файла: {GeneratedFileName}", generatedFileName);
 
-            _logger.LogInformation("Processing uploaded file: {FileName} (generated: {GeneratedFileName})",
-                file.FileName, generatedFileName);
+            // Проверяем валидность FpML
+            var isValidFpML = _fpmlParser.IsValidFpML(xmlContent);
+            _logger.LogInformation("Результат проверки FpML: {IsValid}", isValidFpML);
 
-            // ВРЕМЕННАЯ ЗАГЛУШКА - возвращаем успешный ответ без парсинга
+            if (!isValidFpML) {
+                _logger.LogWarning("XML не является валидным FpML документом");
+                return BadRequest(new {
+                    Error = "Invalid FpML document",
+                    FileInfo = new {
+                        FileName = file.FileName,
+                        Size = file.Length,
+                        ContentPreview = xmlContent.Length > 500 ? xmlContent.Substring(0, 500) + "..." : xmlContent
+                    }
+                });
+            }
+
+            // Определяем тип инструмента
+            var instrumentType = _fpmlParser.GetInstrumentType(xmlContent);
+            _logger.LogInformation("Тип инструмента: {InstrumentType}", instrumentType);
+
+            // Парсим документ
+            _logger.LogInformation("Начинаем парсинг FpML документа...");
+            var parsedTrade = await _fpmlParser.ParseFpMLAsync(xmlContent);
+            _logger.LogInformation("Парсинг завершен. Trade ID: {TradeId}, Тип: {InstrumentType}, Сумма: {Amount}",
+                parsedTrade.TradeId, parsedTrade.InstrumentType, parsedTrade.NotionalAmount);
+
+            object? calculationResult = null;
+            string? calculationStatus = "Not requested";
+
+            if (autoCalculate) {
+                try {
+                    _logger.LogInformation("Начинаем автоматический расчет...");
+
+                    // Трансформируем в запрос для API Gateway
+                    var gatewayRequest = await _transformationService.TransformToApiGatewayRequestAsync(parsedTrade);
+                    _logger.LogInformation("Создан запрос для Gateway: {CalculationType}, Сумма: {Amount}",
+                        gatewayRequest.CalculationType, gatewayRequest.LoanAmount);
+
+                    // Отправляем на расчет
+                    calculationResult = await _transformationService.SendToCalculationAsync(gatewayRequest);
+                    calculationStatus = "Completed successfully";
+                    _logger.LogInformation("Расчет и сохранение в базу завершены успешно");
+                } catch (Exception calcEx) {
+                    calculationStatus = $"Failed: {calcEx.Message}";
+                    _logger.LogWarning(calcEx, "Не удалось выполнить расчет, но документ распарсен успешно");
+                }
+            }
+
             var response = new {
                 Success = true,
-                Message = "File uploaded successfully! (Parser temporarily disabled)",
+                Message = "Document processed successfully",
                 FileInfo = new {
                     OriginalFileName = file.FileName,
                     GeneratedFileName = generatedFileName,
-                    FileSizeBytes = file.Length,
-                    ContentType = file.ContentType,
-                    Notes = notes,
-                    AutoCalculate = autoCalculate,
-                    XmlContentPreview = xmlContent.Length > 200 ? xmlContent.Substring(0, 200) + "..." : xmlContent
+                    Size = file.Length,
+                    ProcessedAt = DateTime.UtcNow
                 },
-                ProcessedAt = DateTime.UtcNow,
-                TransformationId = Guid.NewGuid().ToString()
+                ParsedData = new {
+                    IsValidFpML = isValidFpML,
+                    InstrumentType = instrumentType,
+                    TradeId = parsedTrade.TradeId,
+                    NotionalAmount = parsedTrade.NotionalAmount,
+                    Currency = parsedTrade.Currency,
+                    EffectiveDate = parsedTrade.EffectiveDate,
+                    TerminationDate = parsedTrade.TerminationDate,
+                    TermInYears = parsedTrade.GetTermInYears(),
+                    Parties = parsedTrade.Parties.Select(p => new { p.PartyId, p.PartyName }).ToList(),
+                    FixedLeg = parsedTrade.FixedLeg != null ? new {
+                        parsedTrade.FixedLeg.LegType,
+                        parsedTrade.FixedLeg.FixedRate,
+                        parsedTrade.FixedLeg.PaymentFrequency
+                    } : null,
+                    FloatingLeg = parsedTrade.FloatingLeg != null ? new {
+                        parsedTrade.FloatingLeg.LegType,
+                        parsedTrade.FloatingLeg.FloatingRateIndex,
+                        parsedTrade.FloatingLeg.IndexTenor
+                    } : null
+                },
+                Calculation = new {
+                    Status = calculationStatus,
+                    AutoCalculate = autoCalculate,
+                    Result = calculationResult
+                }
             };
 
-            _logger.LogInformation("Successfully processed file {FileName}", generatedFileName);
-
+            _logger.LogInformation("=== ОБРАБОТКА ФАЙЛА ЗАВЕРШЕНА УСПЕШНО ===");
             return Ok(response);
+
         } catch (Exception ex) {
-            _logger.LogError(ex, "Error processing uploaded file: {FileName}", file?.FileName);
+            _logger.LogError(ex, "Ошибка при обработке файла: {FileName}", file?.FileName);
 
             return BadRequest(new {
                 Success = false,
-                Error = ex.Message
+                Error = ex.Message,
+                Details = ex.InnerException?.Message,
+                FileInfo = file != null ? new {
+                    FileName = file.FileName,
+                    Size = file.Length
+                } : null
             });
         }
     }
@@ -92,7 +172,8 @@ public class DocumentController : ControllerBase {
     /// 🔍 Анализ файла без расчета (быстрая проверка)
     /// </summary>
     [HttpPost("analyze")]
-    public async Task<IActionResult> AnalyzeDocument([FromForm] IFormFile file) {
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> AnalyzeDocument(IFormFile file) {
         try {
             if (file == null || file.Length == 0) {
                 return BadRequest(new { Error = "No file uploaded" });
@@ -103,17 +184,17 @@ public class DocumentController : ControllerBase {
                 xmlContent = await reader.ReadToEndAsync();
             }
 
-            // ВРЕМЕННАЯ ЗАГЛУШКА
-            var isXmlFormat = xmlContent.TrimStart().StartsWith("<?xml") || xmlContent.Contains("<dataDocument");
+            var isValid = _fpmlParser.IsValidFpML(xmlContent);
+            var instrumentType = isValid ? _fpmlParser.GetInstrumentType(xmlContent) : "Unknown";
 
             return Ok(new {
                 FileName = file.FileName,
                 FileSizeBytes = file.Length,
-                IsValid = isXmlFormat,
-                InstrumentType = isXmlFormat ? "InterestRateSwap" : "Unknown",
-                SupportedForCalculation = isXmlFormat,
-                AnalyzedAt = DateTime.UtcNow,
-                Message = "Analysis temporarily simplified - parser disabled"
+                IsValidFpML = isValid,
+                InstrumentType = instrumentType,
+                SupportedForCalculation = isValid,
+                ContentPreview = xmlContent.Length > 300 ? xmlContent.Substring(0, 300) + "..." : xmlContent,
+                AnalyzedAt = DateTime.UtcNow
             });
         } catch (Exception ex) {
             _logger.LogError(ex, "Error analyzing file: {FileName}", file?.FileName);
@@ -132,8 +213,7 @@ public class DocumentController : ControllerBase {
             SupportedFormats = new[] { "FpML (.xml, .fpml)" },
             MaxFileSizeMB = 10,
             Version = "1.0.0",
-            Timestamp = DateTime.UtcNow,
-            Note = "Parser temporarily disabled for testing"
+            Timestamp = DateTime.UtcNow
         });
     }
 
