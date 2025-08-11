@@ -1,0 +1,6 @@
+@DocumentTransformationService_HostAddress = http://localhost:5227
+
+GET {{DocumentTransformationService_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
