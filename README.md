@@ -37,12 +37,23 @@ This is a Telegram bot built with .NET that allows users to simulate and calcula
 ### 📦 Project Structure (simplified)
 
 ```
-TG_Fitz/
-├── Bot/                     # Telegram interaction handlers
-├── Core/                    # Business logic: calculators, strategies, factories
-├── Data/                    # Entities and EF Core context
-├── Services/                # Trade & SOFR integration
-└── Program.cs               # Entry point
+TradingSystem/
+├── 🧮 CalculationService/           
+│   ├── Controllers/                
+│   ├── Core/                      
+│   └── Program.cs
+├── 💾 TradeManagementService/      
+│   ├── Controllers/                 
+│   ├── Models/                    
+│   ├── Data/                      
+│   └── Program.cs
+└── 🌉 ApiGateway/                   
+    ├── Controllers/               
+    └── Program.cs
+
+TG_Fitz_Bot/                         
+├── Services/ApiGatewayService.cs   
+└── Program.cs                       
 ```
 
 ### 📱 Try It in Telegram
