@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Fitz.Core.Models;
+using CalculationService.Core.Models;
 
 namespace TG_Fitz.Data
 {

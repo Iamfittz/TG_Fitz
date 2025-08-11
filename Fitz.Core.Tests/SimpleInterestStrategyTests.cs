@@ -1,6 +1,6 @@
-using Fitz.Core.Enums;
-using Fitz.Core.Strategies;
-using TelegramBot_Fitz.Core;
+using CalculationService.Core.Enums;
+using CalculationService.Core.Strategies;
+
 
 namespace Fitz.Core.Tests {
     public class SimpleInterestStrategyTests {

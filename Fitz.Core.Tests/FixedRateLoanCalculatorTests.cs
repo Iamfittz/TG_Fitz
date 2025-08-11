@@ -1,5 +1,5 @@
-using Fitz.Core.Enums;
-using TelegramBot_Fitz.Core;
+using CalculationService.Core.Enums;
+using CalculationService.Core.Calculators;
 
 namespace Fitz.Core.Tests {
     public class FixedRateLoanCalculatorTests {

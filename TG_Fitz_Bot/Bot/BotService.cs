@@ -5,13 +5,13 @@ using Telegram.Bot.Types.ReplyMarkups;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Collections.Generic;
-using TelegramBot_Fitz.Core;
 using TelegramBot_Fitz.Bot.Handlers;
 using TG_Fitz.Data;
 using TG_Fitz.Bot.Handlers;
 using Microsoft.EntityFrameworkCore;
-using Fitz.Core.States;
-using Fitz.Core.Models;
+using CalculationService.Core.States;
+using TG_Fitz.Services;
+
 
 namespace TelegramBot_Fitz.Bot
 {
@@ -28,32 +28,32 @@ namespace TelegramBot_Fitz.Bot
         private readonly CallbackQueryHandler _callbackQueryHandler;
         private readonly SofrHandlers _sofrHandlers;
         private readonly AppDbContext _dbContext;
+        private readonly ApiGatewayService _apiGatewayService;
 
-        public BotService(string token, AppDbContext dbContext, SofrService sofrService, TradeService tradeService)
+        public BotService(string token, AppDbContext dbContext, SofrService sofrService, ApiGatewayService apiGatewayService)
         {
             _botClient = new TelegramBotClient(token);
             _userStates = new Dictionary<long, UserState>();
-
             _dbContext = dbContext;
-            
-            var fixedCalculator = new FixedRateLoanCalculator();
-            var floatingCalculator = new FloatingRateLoanCalculator();
-            var oisCalculator = new OISCalculator();
-            var sofrHandlers = new SofrHandlers(sofrService); // Используем переданный sofrService
+            _apiGatewayService = apiGatewayService;
 
+
+            var sofrHandlers = new SofrHandlers(sofrService);
             _messageHandlers = new MessageHandlers(_botClient, _dbContext);
-            _calculationHandlers = new CalculationHandlers(_botClient, tradeService);
+
+            _calculationHandlers = new CalculationHandlers(_botClient, _apiGatewayService);
+
             _inputHandlers = new InputHandlers(_botClient, _calculationHandlers);
-            _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers, _dbContext);
-            _sofrHandlers = sofrHandlers;
-            _updateHandler = new UpdateHandler(
-                _botClient,
-                _userStates,
-                _messageHandlers,
-                _inputHandlers,
-                _callbackQueryHandler,
-                _sofrHandlers,
-                _dbContext);
+    _callbackQueryHandler = new CallbackQueryHandler(_botClient, _calculationHandlers, _messageHandlers, _dbContext);
+    _sofrHandlers = sofrHandlers;
+    _updateHandler = new UpdateHandler(
+        _botClient,
+        _userStates,
+        _messageHandlers,
+        _inputHandlers,
+        _callbackQueryHandler,
+        _sofrHandlers,
+        _dbContext);
         }
 
         public void Start()
