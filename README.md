@@ -38,22 +38,22 @@ This is a Telegram bot built with .NET that allows users to simulate and calcula
 
 ```
 TradingSystem/
-├── 🧮 CalculationService/           # Микросервис расчетов
-│   ├── Controllers/                 # API endpoints
-│   ├── Core/                       # Бизнес-логика (из старого Fitz.Core)
+├── 🧮 CalculationService/           
+│   ├── Controllers/                
+│   ├── Core/                      
 │   └── Program.cs
-├── 💾 TradeManagementService/       # Микросервис данных
-│   ├── Controllers/                 # CRUD операции
-│   ├── Models/                     # Entities
-│   ├── Data/                       # DbContext
+├── 💾 TradeManagementService/      
+│   ├── Controllers/                 
+│   ├── Models/                    
+│   ├── Data/                      
 │   └── Program.cs
-└── 🌉 ApiGateway/                   # Единая точка входа
-    ├── Controllers/                 # Объединенные API
+└── 🌉 ApiGateway/                   
+    ├── Controllers/               
     └── Program.cs
 
-TG_Fitz_Bot/                         # Обновленный бот
-├── Services/ApiGatewayService.cs    # HTTP клиент
-└── Program.cs                       # Интеграция с Gateway
+TG_Fitz_Bot/                         
+├── Services/ApiGatewayService.cs   
+└── Program.cs                       
 ```
 
 ### 📱 Try It in Telegram
