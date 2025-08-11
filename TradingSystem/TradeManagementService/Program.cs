@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TradeManagementService.Data;
+using System.Text.Json.Serialization;
 
 namespace TradeManagementService;
 
@@ -8,7 +9,14 @@ public class Program {
         var builder = WebApplication.CreateBuilder(args);
 
         // 📦 Добавляем сервисы
-        builder.Services.AddControllers();
+        builder.Services.AddControllers()
+            .AddJsonOptions(options => {
+                // 🔄 Настройка JSON для избежания циклических ссылок
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+                options.JsonSerializerOptions.PropertyNamingPolicy = null; // Сохраняем PascalCase
+            });
+
         builder.Services.AddEndpointsApiExplorer();
 
         // 📚 Swagger
@@ -38,7 +46,10 @@ public class Program {
         // ⚙️ Настройка pipeline
         if (app.Environment.IsDevelopment()) {
             app.UseSwagger();
-            app.UseSwaggerUI();
+            app.UseSwaggerUI(c => {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Trade Management Service v1");
+                c.RoutePrefix = "swagger";
+            });
         }
 
         app.UseHttpsRedirection();
@@ -50,6 +61,11 @@ public class Program {
         using (var scope = app.Services.CreateScope()) {
             var context = scope.ServiceProvider.GetRequiredService<TradeDbContext>();
             context.Database.EnsureCreated();
+
+            // Логируем статистику
+            var tradesCount = context.Trades.Count();
+            var usersCount = context.Users.Count();
+            Console.WriteLine($"📊 Database initialized: {tradesCount} trades, {usersCount} users");
         }
 
         app.Run();
