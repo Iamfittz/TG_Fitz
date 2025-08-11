@@ -7,7 +7,7 @@ using TG_Fitz.Data;
 using Microsoft.EntityFrameworkCore;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using System.Reflection;
-using Fitz.Core.Models;
+using TG_Fitz.Services;
 
 namespace TelegramBot_Fitz {
     internal class Program {
@@ -47,16 +47,22 @@ namespace TelegramBot_Fitz {
                 options.UseSqlite(connectionString));
             services.AddHttpClient<SofrService>(); // Регистрируем HttpClient для SofrService
             services.AddScoped<SofrService>(); // Регистрируем SofrService
+
             services.AddScoped<BotService>(sp =>
             {
                 var token = sp.GetRequiredService<string>();
                 var db = sp.GetRequiredService<AppDbContext>();
                 var sofr = sp.GetRequiredService<SofrService>();
-                var tradeService = sp.GetRequiredService<TradeService>();
-                return new BotService(token, db, sofr, tradeService);
+                var apiGateway = sp.GetRequiredService<ApiGatewayService>(); // Добавь эту строку
+                return new BotService(token, db, sofr, apiGateway); // Добавь параметр
             });
 
-            services.AddScoped<TradeService>();
+            //  HTTP клиент для Gateway - ДОБАВЬ ЭТУ СТРОКУ
+            services.AddHttpClient<ApiGatewayService>(client =>
+            {
+                client.BaseAddress = new Uri("https://localhost:7273/");
+            });
+
             var serviceProvider = services.BuildServiceProvider();
 
 

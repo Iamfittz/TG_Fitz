@@ -25,7 +25,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Fitz.Core\Fitz.Core.csproj" />
+    <ProjectReference Include="..\TradingSystem\ApiGateway\ApiGateway.csproj" />
+    <ProjectReference Include="..\TradingSystem\CalculationService\CalculationService.csproj" />
   </ItemGroup>
 
 

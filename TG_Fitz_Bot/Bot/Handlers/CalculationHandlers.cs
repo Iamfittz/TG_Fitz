@@ -5,120 +5,104 @@ using System.Text;
 using System.Threading.Tasks;
 using Telegram.Bot;
 using Telegram.Bot.Types.ReplyMarkups;
-using TelegramBot_Fitz.Core;
-using Fitz.Core.Enums;
-using Fitz.Core.Factories;
-using Fitz.Core.Interfaces;
-using Fitz.Core.Strategies;
-using Fitz.Core.States;
-using Fitz.Core.Models;
-using TG_Fitz.Core;
+using TG_Fitz.Services;
+using CalculationService.Core.States;
 
 namespace TelegramBot_Fitz.Bot {
     public class CalculationHandlers {
         private readonly ITelegramBotClient _botClient;
-        private readonly TradeService _tradeService;
+        private readonly ApiGatewayService _apiGatewayService;
 
-        public CalculationHandlers(ITelegramBotClient botClient, TradeService tradeService) {
+        public CalculationHandlers(ITelegramBotClient botClient, ApiGatewayService apiGatewayService) {
             _botClient = botClient;
-            _tradeService = tradeService;
+            _apiGatewayService = apiGatewayService;
         }
 
+        /// <summary>
+        /// 🚀 Универсальный метод для всех типов расчетов через Gateway
+        /// </summary>
+        public async Task HandleCalculationViaGateway(long chatId, object userState, string calculationType) {
+            try {
+                // Преобразуем UserState в запрос для Gateway
+                var request = ConvertToGatewayRequest(chatId, userState, calculationType);
 
-        public async Task HandleFixedRateCalculation(long chatId, UserState state) {
-            var calculator = CalculatorFactory.GetCalculator(state.CalculationType);
+                // Вызываем Gateway (расчет + сохранение)
+                var response = await _apiGatewayService.CalculateAndSaveAsync(request);
 
-            if (calculator is FixedRateLoanCalculator fixedRateCalculator) {
-                var calculationResult = fixedRateCalculator.CalculateLoan(
-                    state.LoanAmount,
-                    state.YearlyRates,
-                    state.InterestCalculationType
-                );
+                if (response?.Success == true) {
+                    // Форматируем и отправляем результат
+                    var message = FormatCalculationResult(response, calculationType);
 
-                StringBuilder message = new StringBuilder();
-                message.AppendLine($"📊 {state.InterestCalculationType} Interest Calculation\n");
-                message.AppendLine($"Initial amount: {state.LoanAmount:F2} USD\n");
+                    var afterCalculation = new InlineKeyboardMarkup(new[]
+                    {
+                        new[] {
+                            InlineKeyboardButton.WithCallbackData("📊 New Calculation", "NewCalculation"),
+                            InlineKeyboardButton.WithCallbackData("🏠 Main Menu", "MainMenu")
+                        },
+                        new[] { InlineKeyboardButton.WithCallbackData("❓ Help", "Help") }
+                    });
 
-                foreach (var yearCalc in calculationResult.YearlyCalculations) {
-                    message.AppendLine($"Year {yearCalc.Year}:");
-                    message.AppendLine($"Rate: {yearCalc.Rate}%");
-                    message.AppendLine($"Interest: {yearCalc.Interest:F2} USD");
-
-                    if (state.InterestCalculationType == InterestCalculationType.Compound) {
-                        message.AppendLine($"Accumulated amount: {yearCalc.AccumulatedAmount:F2} USD");
-                    }
-                    message.AppendLine();
+                    await _botClient.SendMessage(chatId, message, replyMarkup: afterCalculation);
+                } else {
+                    await _botClient.SendMessage(chatId, "❌ Calculation failed. Please try again.");
                 }
-
-                message.AppendLine($"Total Interest: {calculationResult.TotalInterest:F2} USD");
-                message.AppendLine($"Total Payment: {calculationResult.TotalPayment:F2} USD");
-
-                var afterCalculation = new InlineKeyboardMarkup(new[]
-                {
-                    new[] { InlineKeyboardButton.WithCallbackData("📊 New Calculation", "NewCalculation"),
-                            InlineKeyboardButton.WithCallbackData("🏠 Main Menu", "MainMenu") },
-                    new[] { InlineKeyboardButton.WithCallbackData("❓ Help", "Help") }
-                });
-
-                await _botClient.SendMessage(
-                    chatId,
-                    message.ToString() + "\n\nWhat would you like to do next, anon?",
-                    replyMarkup: afterCalculation
-                );
-            } else {
-                await _botClient.SendMessage(chatId, "❌ Error: Incorrect calculator type for fixed rate.");
+            } catch (Exception ex) {
+                await _botClient.SendMessage(chatId, $"❌ Error: {ex.Message}");
             }
-
-            // Сохраняем трейд в базу
-            await _tradeService.SaveTradeAsync(chatId, state);
-
-            state.Reset();
         }
 
-        public async Task HandleFloatingRateCalculation(long chatId, UserState state) {
-            var calculator = CalculatorFactory.GetCalculator(state.CalculationType);
+        private ApiGatewayRequest ConvertToGatewayRequest(long chatId, object userStateObj, string calculationType) {
+            // Приводим object к UserState
+            if (userStateObj is not CalculationService.Core.States.UserState userState)
+                throw new ArgumentException("Invalid UserState");
 
-            if (calculator is not IFloatingRateCalculator floatingCalculator) {
-                await _botClient.SendMessage(chatId, "❌ Internal error: Expected floating rate calculator.");
-                return;
-            }
+            return new ApiGatewayRequest {
+                TelegramId = chatId,
+                CalculationType = calculationType,
+                CompanyName = userState.CompanyName ?? "Unknown Company",
+                LoanAmount = userState.LoanAmount,
+                Years = userState.LoanYears,
+                InterestType = userState.InterestCalculationType.ToString(),
 
-            var breakdown = floatingCalculator.GetInterestBreakdown(state);
-            decimal totalInterest = breakdown.Sum(p => p.Interest);
+                // FixedRate данные
+                YearlyRates = userState.YearlyRates,
 
+                // FloatingRate данные
+                FloatingRates = userState.FloatingRates?.ToArray(),
+                ResetPeriod = (int)userState.FloatingRateResetPeriod,
+
+                // OIS данные
+                OvernightRate = userState.FirstRate,
+                Days = userState.Days,
+                DayCountConvention = (int)userState.DayCountConvention
+            };
+        }
+
+        private string FormatCalculationResult(ApiGatewayResponse response, string calculationType) {
             var sb = new StringBuilder();
-            sb.AppendLine("📊 Floating Rate Calculation");
-            sb.AppendLine($"🏢 Company: {state.CompanyName ?? "Untitled"}");
-            sb.AppendLine($"💰 Loan Amount: {state.LoanAmount:F2} USD");
-            sb.AppendLine($"📅 Duration: {state.LoanYears} years");
-            sb.AppendLine($"🔁 Reset every {(int)state.FloatingRateResetPeriod} months\n");
+            sb.AppendLine($"✅ {calculationType} Calculation Completed!");
+            sb.AppendLine();
+            sb.AppendLine("📊 Results:");
 
-            foreach (var period in breakdown) {
-                sb.AppendLine($"📌 Period {period.PeriodNumber}: {period.Rate}% → {period.Interest:F2} USD");
-            }
+            // Здесь нужно будет парсить response.Calculation 
+            // и красиво форматировать результат
 
-            sb.AppendLine($"\n💸 Total Interest: {totalInterest:F2} USD");
+            sb.AppendLine($"🎉 {response.Message}");
 
-            await _botClient.SendMessage(chatId, sb.ToString());
-
-            await _tradeService.SaveTradeAsync(chatId, state);
-
-            state.Reset();
+            return sb.ToString();
         }
 
+        // Оставляем старые методы как заглушки пока не переделаем весь бот
+        public async Task HandleFixedRateCalculation(long chatId, object state) {
+            await HandleCalculationViaGateway(chatId, state, "FixedRate");
+        }
 
-        public async Task HandleOISCalculation(long chatId, UserState state, DayCountConvention dayCountConvention) {
-            var calculator = CalculatorFactory.GetCalculator(state.CalculationType);
+        public async Task HandleFloatingRateCalculation(long chatId, object state) {
+            await HandleCalculationViaGateway(chatId, state, "FloatingRate");
+        }
 
-            if (calculator is OISCalculator oisCalculator) {
-                var calculationResult = oisCalculator.CalculateOIS(state,dayCountConvention);
-                var resultMessage = OISResultFormatter.FormatCalculationResult(calculationResult, state);
-                await _botClient.SendMessage(chatId, resultMessage);
-            } else {
-                await _botClient.SendMessage(chatId, "❌ Error: Incorrect calculator type for OIS.");
-            }
-
-            state.Reset();
+        public async Task HandleOISCalculation(long chatId, object state, object dayCountConvention) {
+            await HandleCalculationViaGateway(chatId, state, "OIS");
         }
     }
 }

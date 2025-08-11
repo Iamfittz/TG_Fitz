@@ -1,8 +1,8 @@
-﻿using Fitz.Core.Enums;
-using Fitz.Core.Interfaces;
-using Fitz.Core.States;
-using Fitz.Core.Strategies;
-using TelegramBot_Fitz.Core;
+﻿using CalculationService.Core.Enums;
+using CalculationService.Core.Interfaces;
+using CalculationService.Core.States;
+using CalculationService.Core.Strategies;
+using CalculationService.Core.Calculators;
 
 namespace Fitz.Core.Tests {
     public class OISCalculatorTests {

@@ -1,8 +1,9 @@
-﻿using Fitz.Core.Enums;
-using Fitz.Core.Interfaces;
-using Fitz.Core.States;
-using Fitz.Core.Strategies;
-using TelegramBot_Fitz.Core;
+﻿using CalculationService.Core.Enums;
+using CalculationService.Core.Interfaces;
+using CalculationService.Core.States;
+using CalculationService.Core.Strategies;
+using CalculationService.Core.Calculators;
+using CalculationService.Core;
 using TG_Fitz.Core;
 using Xunit;
 
@@ -95,7 +96,7 @@ namespace Fitz.Core.Tests {
             var state = new UserState {
                 LoanAmount = 10000,
                 FloatingRates = new List<decimal> { 5, 4.2m, 4.8m, 11.02m },
-                FloatingRateResetPeriod = (TG_Fitz.Core.FloatingRateResetPeriod)3 // each 3 months
+                FloatingRateResetPeriod = (CalculationService.Core.Enums.FloatingRateResetPeriod)3 // each 3 months
             };
             var calculator = new FloatingRateLoanCalculator();
 
@@ -132,7 +133,7 @@ namespace Fitz.Core.Tests {
             var state = new UserState {
                 LoanAmount = 1000,
                 FloatingRates = new List<decimal> { 4, 6 }, // 2 periods: 4%, 6%
-                FloatingRateResetPeriod = (TG_Fitz.Core.FloatingRateResetPeriod)6 // each 6 months
+                FloatingRateResetPeriod = (CalculationService.Core.Enums.FloatingRateResetPeriod)6 // each 6 months
             };
 
             var calculator = new FloatingRateLoanCalculator();
